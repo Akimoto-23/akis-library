@@ -11,7 +11,7 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,san
 button,input,select,textarea{font:inherit;color:inherit}
 h1{font-size:1.6rem;letter-spacing:-.02em}h2{font-size:1.15rem}
 header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.8rem 1.2rem;background:var(--s1);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.1rem}
+.logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.1rem;background:none;border:0;color:var(--tx);cursor:pointer;padding:0;font-family:inherit}
 .logo i{width:28px;height:28px;border-radius:8px;background:var(--or);display:grid;place-items:center;color:#141210;font-style:normal}
 nav{display:flex;gap:.3rem;flex-wrap:wrap}
 nav button{background:none;border:0;padding:.5rem .9rem;border-radius:999px;color:var(--mu);cursor:pointer}
@@ -23,8 +23,8 @@ aside{width:250px;flex:none;position:sticky;top:57px;height:calc(100vh - 57px);o
 .si:hover{background:var(--s1);color:var(--tx)}.si.on{background:var(--s2);color:var(--tx);font-weight:600}.si span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .ch{font-size:.72rem;font-weight:600;padding:.05rem .4rem;border-radius:999px;border:1px solid var(--line);color:var(--tx)}.ch.o{background:var(--or);color:#141210;border-color:var(--or)}
-.fl{height:13px;width:auto;border-radius:2px;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
-.lab{position:absolute;top:.4rem;right:.4rem;display:inline-flex;align-items:center;gap:.3rem;background:#141210cc;border-radius:999px;padding:.25rem .4rem;line-height:0}.lab .fl{margin:0;height:15px}
+.fl{width:21px;height:14px;object-fit:cover;border-radius:2px;margin-right:.3rem;vertical-align:-2px}
+.lab{position:absolute;top:.4rem;right:.4rem;display:inline-flex;align-items:center;gap:.3rem;background:#141210cc;border-radius:999px;padding:.25rem .4rem;line-height:0}.lab .fl{margin:0;width:24px;height:16px}
 .cover{position:relative}.hd{cursor:grab;color:var(--mu);padding:0 .3rem;user-select:none}.vr.drag{opacity:.4}
 .bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.bar input{flex:1;min-width:180px}.bar select{width:auto}
 .chk{display:flex;align-items:center;gap:.6rem;margin-top:.8rem;color:var(--tx)}.chk input{width:auto}
@@ -106,7 +106,7 @@ async function go(v) {
     if (view === 'mine') mine = await rpc('my_requests');
     if (view === 'users') users = await rpc('list_users');
     if (view === 'notif') { notes = await rpc('my_notifications'); await rpc('mark_seen'); nc = 0; }
-    if (view === 'manage' && mtab === 'req') areq = await rpc('admin_requests', {p_lib: +lib});
+    if (view === 'orders') areq = (await Promise.all(D.libs.filter(mine_).map(async l => (await rpc('admin_requests', {p_lib: l.id})).map(r => ({...r, lib: l.name}))))).flat();
   });
   draw();
 }
@@ -133,16 +133,16 @@ function draw() {
     <h1>Bem-vindo!</h1><p class="mu">É a tua primeira entrada. Define uma passe nova e escolhe como queres ser avisado.</p>
     <label>Nova passe (mínimo 3 caracteres)</label><input name="p" type="password" autocomplete="new-password" minlength="3" required>
     <label>Repete a passe</label><input name="p2" type="password" autocomplete="new-password" minlength="3" required>
-    <label>ID do Discord (para avisos por mensagem privada)</label><input name="d" inputmode="numeric" pattern="[0-9]{15,25}" placeholder="Ex.: 123456789012345678" value="${esc()}">
-    <p class="mu" style="font-size:.8rem;margin-top:.3rem">Como obter: no Discord abre Definições → Avançado → liga o Modo de programador. Depois clica com o botão direito no teu nome e escolhe "Copiar ID do utilizador".</p>
+    <label>Utilizador do Discord (para avisos por mensagem privada)</label><input name="d" pattern="@?[A-Za-z0-9_.]{2,32}" placeholder="ex.: akimoto_23" autocapitalize="none" value="${esc()}">
+    <p class="mu" style="font-size:.8rem;margin-top:.3rem">É o teu username fixo do Discord, o que aparece por baixo do nome de apresentação no teu perfil (ex.: akimoto_23). Não é o nome de apresentação. Tens de estar no servidor onde está o bot.</p>
     <label class="chk"><input type="checkbox" name="nt" checked>Receber notificações (novas coleções e volumes)</label>
     <label class="chk"><input type="checkbox" name="nb" checked>Avisar pelo browser (Windows), com o site aberto</label>
     <label class="chk"><input type="checkbox" name="nd" checked>Avisar por mensagem privada no Discord</label>
     <button class="btn" style="width:100%;margin-top:1.2rem">Guardar e entrar</button></form>`;
   const on = (v, l) => view === v && (l === undefined || lib === l) ? 'on' : '';
-  const owned = D.libs.some(mine_);
-  el.innerHTML = `<header><button class="hb" data-a="sb" aria-label="Abrir ou fechar a barra lateral">☰</button><div class="logo"><i>A</i>Aki's Library</div>
-    ${owned ? '<button class="btn sm" data-a="manage">Gerir biblioteca</button>' : ''}<span style="margin-right:auto"></span>
+  const owned = D.libs.some(mine_), reqN = D.libs.filter(mine_).reduce((a, l) => a + l.req, 0);
+  el.innerHTML = `<header><button class="hb" data-a="sb" aria-label="Abrir ou fechar a barra lateral">☰</button><button class="logo" data-a="home" title="Todas as Bibliotecas"><i>A</i>Aki's Library</button>
+    ${owned ? `<button class="btn sm" data-a="manage">Gerir biblioteca</button><button class="btn g sm" data-a="nav" data-v="orders">Pedidos${reqN ? ` <b class="ch o">${reqN}</b>` : ''}</button>` : ''}<span style="margin-right:auto"></span>
     <nav><button data-a="nav" data-v="cart" class="${on('cart')}">Carrinho (${cart.length})</button>
     <button data-a="nav" data-v="mine" class="${on('mine')}">Os meus pedidos</button>
     ${D.me.admin ? `<button data-a="nav" data-v="users" class="${on('users')}">Utilizadores</button>` : ''}
@@ -151,7 +151,7 @@ function draw() {
     <div class="shell"><aside class="${sb ? '' : 'hide'}"><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
     ${D.libs.map(l => `<button class="si ${on('lib', String(l.id))}" data-a="sel" data-id="${l.id}"><i class="dot" style="background:${esc(l.color)}"></i><span>${esc(l.name)}</span>${chips(l)}</button>`).join('')}
     ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}</aside>
-    <main>${nbanner()}${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV}[view]()}</main></div>${open ? modal() : ''}`;
+    <main>${nbanner()}${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV, orders: ordersV}[view]()}</main></div>${open ? modal() : ''}`;
 }
 
 const filt = () => D.cols.filter(c => (lib === 'all' || c.library_id === +lib) && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
@@ -203,8 +203,8 @@ function profileV() {
   const m = D.me;
   return `<h1>O meu perfil</h1><div class="cols"><form class="panel" data-f="profile" style="margin:0"><h2>Dados</h2>
     <label>Nome</label><input name="n" value="${esc(m.name)}" required><label>Utilizador</label><input name="u" value="${esc(m.username)}" required autocapitalize="none">
-    <label>ID do Discord (para avisos por mensagem privada)</label><input name="d" inputmode="numeric" pattern="[0-9]{15,25}" placeholder="Ex.: 123456789012345678" value="${esc(P.discord_id)}">
-    <p class="mu" style="font-size:.8rem;margin-top:.3rem">Como obter: no Discord abre Definições → Avançado → liga o Modo de programador. Depois clica com o botão direito no teu nome e escolhe "Copiar ID do utilizador".</p>
+    <label>Utilizador do Discord (para avisos por mensagem privada)</label><input name="d" pattern="@?[A-Za-z0-9_.]{2,32}" placeholder="ex.: akimoto_23" autocapitalize="none" value="${esc(P.discord_id)}">
+    <p class="mu" style="font-size:.8rem;margin-top:.3rem">É o teu username fixo do Discord, o que aparece por baixo do nome de apresentação no teu perfil (ex.: akimoto_23). Não é o nome de apresentação. Tens de estar no servidor onde está o bot.</p>
     <label class="chk"><input type="checkbox" name="nt" ${m.notify ? 'checked' : ''}>Receber notificações (novas coleções e volumes)</label>
     <label class="chk"><input type="checkbox" name="nb" ${m.notify_browser ? 'checked' : ''}>Avisar pelo browser (Windows), com o site aberto</label>
     <label class="chk"><input type="checkbox" name="nd" ${P.notify_discord !== false ? 'checked' : ''}>Avisar por mensagem privada no Discord</label>
@@ -227,21 +227,23 @@ function usersV() {
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
 }
 const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+function ordersV() {
+  const multi = D.libs.filter(mine_).length > 1;
+  return '<h1>Pedidos</h1>' + `<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}${multi ? ' · ' + esc(r.lib) : ''}</small></div>
+    ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span>${r.busy ? '<span class="tag busy">Volume emprestado</span>'
+      : `<input type="date" id="d${r.id}" value="${today()}" style="width:150px"><button class="btn sm" data-a="conf" data-id="${r.id}">Confirmar empréstimo</button>`}<button class="btn d sm" data-a="cancel" data-id="${r.id}">Apagar</button>`
+      : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
+}
 const IMGB = `<label>Imagem de capa</label><input name="i" type="file" accept="image/*"><input name="iu" placeholder="ou cola aqui o link de uma imagem" style="margin-top:.5rem">
   <button type="button" class="btn g sm" data-a="isearch" style="margin-top:.5rem">Pesquisar capa online ↗</button>
   <p class="mu" style="font-size:.8rem;margin-top:.4rem">Abre o League of Comic Geeks. Clica com o botão direito na capa, "Copiar endereço da imagem", e cola no campo de link acima.</p>`;
 function manageV() {
   const L = libOf(lib); if (!mine_(L)) return '<div class="empty">Escolhe uma biblioteca tua na barra lateral.</div>';
   const tabs = `<div class="tabs"><button data-a="mtab" data-t="col" class="${mtab === 'col' ? 'on' : ''}">Coleções e volumes</button>
-    <button data-a="mtab" data-t="req" class="${mtab === 'req' ? 'on' : ''}">Pedidos${L.req ? ' (' + L.req + ')' : ''}</button>
     <button data-a="mtab" data-t="lib" class="${mtab === 'lib' ? 'on' : ''}">Biblioteca</button></div>`;
   const head = `<div class="top"><h1>Gerir: ${esc(L.name)}</h1><button class="btn g sm" data-a="sel" data-id="${L.id}">Ver biblioteca</button></div>${tabs}`;
   if (mtab === 'lib') return head + `<form class="panel" data-f="elib" style="max-width:420px"><label>Nome</label><input name="n" value="${esc(L.name)}" required>
     <label>Cor das coleções</label><input name="c" type="color" value="${esc(L.color)}" style="height:44px;padding:.2rem"><button class="btn" style="margin-top:1rem">Guardar biblioteca</button></form>`;
-  if (mtab === 'req') return head + `<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}</small></div>
-    ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span>${r.busy ? '<span class="tag busy">Volume emprestado</span>'
-      : `<input type="date" id="d${r.id}" value="${today()}" style="width:150px"><button class="btn sm" data-a="conf" data-id="${r.id}">Confirmar empréstimo</button>`}<button class="btn d sm" data-a="cancel" data-id="${r.id}">Apagar</button>`
-      : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
   const cs = D.cols.filter(c => c.library_id === L.id), c = cs.find(x => x.id === +mc);
   const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
@@ -264,6 +266,7 @@ const img = async f => f.i.files[0] ? shrink(f.i.files[0]) : (f.iu.value.trim() 
 
 const A = {
   nav: d => { open = null; go(d.v); }, logout,
+  home: () => { lib = 'all'; q = ''; lf = ''; open = null; go('lib'); },
   sel: d => { lib = d.id; q = ''; lf = ''; open = null; go('lib'); },
   sb: () => { sb = !sb; localStorage.setItem('sb', sb ? '1' : '0'); draw(); },
   manage: () => { if (!mine_(libOf(lib))) lib = String(D.libs.find(mine_).id); mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
@@ -286,7 +289,7 @@ const A = {
   vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go(); }),
   vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); go(); }); },
 };
-const dcheck = f => { if (f.nd.checked && !f.d.value.trim()) throw new Error('Indica o teu ID do Discord ou desmarca os avisos por Discord'); };
+const dcheck = f => { if (f.nd.checked && !f.d.value.trim()) throw new Error('Indica o teu utilizador do Discord ou desmarca os avisos por Discord'); };
 const F = {
   elib: f => run(async () => { await rpc('edit_library', {p_id: +lib, p_name: f.n.value, p_color: f.c.value}); toast('Biblioteca guardada'); go(); }),
   login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value}); localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : start(); }),
