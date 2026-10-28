@@ -101,9 +101,9 @@ function draw() {
     <label>Passe</label><input name="p" type="password" autocomplete="current-password" required>
     <button class="btn" style="width:100%;margin-top:1.2rem">Entrar</button></form>`;
   if (S.must_change) return el.innerHTML = `<form class="login" data-f="pw">
-    <h1>Escolhe a tua passe</h1><p class="mu">É a tua primeira entrada. Define uma passe nova (mínimo 6 caracteres).</p>
-    <label>Nova passe</label><input name="p" type="password" autocomplete="new-password" minlength="6" required>
-    <label>Repete a passe</label><input name="p2" type="password" autocomplete="new-password" minlength="6" required>
+    <h1>Escolhe a tua passe</h1><p class="mu">É a tua primeira entrada. Define uma passe nova (mínimo 3 caracteres).</p>
+    <label>Nova passe</label><input name="p" type="password" autocomplete="new-password" minlength="3" required>
+    <label>Repete a passe</label><input name="p2" type="password" autocomplete="new-password" minlength="3" required>
     <button class="btn" style="width:100%;margin-top:1.2rem">Guardar passe</button></form>`;
   const nav = [['lib', 'Biblioteca'], ['cart', `Carrinho (${cart.length})`], ['mine', 'Os meus pedidos']];
   if (S.admin) nav.push(['admin', 'Admin']);
@@ -154,7 +154,7 @@ function adminV() {
       : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
   if (tab === 'usr') return `<h1>Admin</h1>${tabs}<div class="cols"><form class="panel" data-f="user" style="margin:0"><h2>Novo utilizador</h2>
     <label>Nome</label><input name="n" required><label>Utilizador (para entrar)</label><input name="u" required autocapitalize="none">
-    <label>Passe provisória</label><input name="p" minlength="6" required><button class="btn" style="margin-top:1rem">Criar utilizador</button></form>
+    <label>Passe provisória</label><input name="p" minlength="3" required><button class="btn" style="margin-top:1rem">Criar utilizador</button></form>
     <div class="panel" style="margin:0"><h2>Utilizadores</h2>${users.map(u => `<div class="row"><div class="g1"><b>${esc(u.name)}</b> <span class="mu">${esc(u.username)}</span></div>
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
   return `<h1>Admin</h1>${tabs}<div class="cols"><form class="panel" data-f="coll" style="margin:0"><h2>Nova coleção</h2>
