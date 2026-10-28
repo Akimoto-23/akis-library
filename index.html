@@ -167,7 +167,7 @@ function adminV() {
     <div class="panel" style="grid-column:1/-1;margin:0"><h2>Editar volumes</h2><label>Coleção</label>
     <select data-ch="ec">${cat.map(c => `<option value="${c.id}" ${cc && c.id === cc.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>
     <div style="margin-top:.8rem">${cc ? cc.volumes.map(v => `<div class="row"><input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px">
-    <button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>' : '<div class="empty">Cria uma coleção primeiro.</div>'}</div></div></div>`;
+    <button class="btn g sm" data-a="vmv" data-d="-1" data-id="${v.id}" title="Subir" aria-label="Subir">↑</button><button class="btn g sm" data-a="vmv" data-d="1" data-id="${v.id}" title="Descer" aria-label="Descer">↓</button><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>' : '<div class="empty">Cria uma coleção primeiro.</div>'}</div></div></div>`;
 }
 
 const shrink = f => new Promise(r => { const i = new Image(); i.onload = () => {
@@ -183,6 +183,7 @@ const A = {
   send: () => run(async () => { await rpc('request_volumes', {p_ids: cart.map(x => x.id), p_date: $('#cd').value}); cart = []; toast('Pedido enviado'); go('mine'); }),
   cancel: d => run(async () => { await rpc('cancel_request', {p_id: +d.id}); go(view); }),
   ret: d => run(async () => { await rpc('return_loan', {p_id: +d.id}); toast('Devolução confirmada'); go(view); }),
+  vmv: d => run(async () => { await rpc('move_volume', {p_id: +d.id, p_dir: +d.d}); go('admin'); }),
   vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go('admin'); }),
   vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); toast('Volume apagado'); go('admin'); }); },
   conf: d => run(async () => { await rpc('confirm_loan', {p_id: +d.id, p_date: $('#d' + d.id).value}); toast('Empréstimo confirmado'); go('admin'); }),
