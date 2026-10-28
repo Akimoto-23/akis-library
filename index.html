@@ -58,7 +58,7 @@ const API_KEY = 'sb_publishable_xpGto1Zm5LdSwcxQHudxVw_y90rX-Vp';
 // ================================================================
 
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
-let view = 'lib', tab = 'req', open = null, cat = [], mine = [], areq = [], users = [], cart = [];
+let view = 'lib', tab = 'req', ec = null, open = null, cat = [], mine = [], areq = [], users = [], cart = [];
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -157,12 +157,17 @@ function adminV() {
     <label>Passe provisória</label><input name="p" minlength="3" required><button class="btn" style="margin-top:1rem">Criar utilizador</button></form>
     <div class="panel" style="margin:0"><h2>Utilizadores</h2>${users.map(u => `<div class="row"><div class="g1"><b>${esc(u.name)}</b> <span class="mu">${esc(u.username)}</span></div>
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
+  const cc = cat.find(c => c.id === ec) || cat[0];
   return `<h1>Admin</h1>${tabs}<div class="cols"><form class="panel" data-f="coll" style="margin:0"><h2>Nova coleção</h2>
     <label>Título</label><input name="t" required><label>Imagem de capa</label><input name="i" type="file" accept="image/*">
     <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>
     <form class="panel" data-f="vols" style="margin:0"><h2>Adicionar volumes</h2><label>Coleção</label>
     <select name="c" required>${cat.map(c => `<option value="${c.id}">${esc(c.title)} (${c.volumes.length})</option>`).join('')}</select>
-    <label>Novos volumes (um por linha)</label><textarea name="v" rows="5" required></textarea><button class="btn" style="margin-top:1rem">Adicionar volumes</button></form></div>`;
+    <label>Novos volumes (um por linha)</label><textarea name="v" rows="5" required></textarea><button class="btn" style="margin-top:1rem">Adicionar volumes</button></form>
+    <div class="panel" style="grid-column:1/-1;margin:0"><h2>Editar volumes</h2><label>Coleção</label>
+    <select data-ch="ec">${cat.map(c => `<option value="${c.id}" ${cc && c.id === cc.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>
+    <div style="margin-top:.8rem">${cc ? cc.volumes.map(v => `<div class="row"><input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px">
+    <button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>' : '<div class="empty">Cria uma coleção primeiro.</div>'}</div></div></div>`;
 }
 
 const shrink = f => new Promise(r => { const i = new Image(); i.onload = () => {
@@ -178,6 +183,8 @@ const A = {
   send: () => run(async () => { await rpc('request_volumes', {p_ids: cart.map(x => x.id), p_date: $('#cd').value}); cart = []; toast('Pedido enviado'); go('mine'); }),
   cancel: d => run(async () => { await rpc('cancel_request', {p_id: +d.id}); go(view); }),
   ret: d => run(async () => { await rpc('return_loan', {p_id: +d.id}); toast('Devolução confirmada'); go(view); }),
+  vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go('admin'); }),
+  vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); toast('Volume apagado'); go('admin'); }); },
   conf: d => run(async () => { await rpc('confirm_loan', {p_id: +d.id, p_date: $('#d' + d.id).value}); toast('Empréstimo confirmado'); go('admin'); }),
 };
 const F = {
@@ -195,6 +202,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-stop]') && !e.target.closest('button')) return;
   const b = e.target.closest('[data-a]'); if (b && A[b.dataset.a]) A[b.dataset.a](b.dataset);
 });
+document.addEventListener('change', e => { if (e.target.dataset.ch === 'ec') { ec = +e.target.value; draw(); } });
 document.addEventListener('submit', e => { const f = e.target.closest('[data-f]'); if (f) { e.preventDefault(); F[f.dataset.f](f); } });
 S && !S.must_change ? go('lib') : draw();
 </script>
