@@ -16,7 +16,19 @@ header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.8rem 1.2
 nav{display:flex;gap:.3rem;flex-wrap:wrap}
 nav button{background:none;border:0;padding:.5rem .9rem;border-radius:999px;color:var(--mu);cursor:pointer}
 nav button:hover{color:var(--tx)}nav button.on{background:var(--or);color:#141210;font-weight:600}
-main{max-width:1100px;margin:0 auto;padding:1.5rem 1.2rem 4rem}
+main{flex:1;min-width:0;max-width:1100px;padding:1.5rem 1.2rem 4rem}
+.shell{display:flex;align-items:flex-start}
+aside{width:250px;flex:none;position:sticky;top:57px;height:calc(100vh - 57px);overflow:auto;padding:1rem .7rem;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:.2rem}
+.si{display:flex;align-items:center;gap:.5rem;width:100%;background:none;border:0;border-radius:10px;padding:.55rem .7rem;cursor:pointer;text-align:left;color:var(--mu)}
+.si:hover{background:var(--s1);color:var(--tx)}.si.on{background:var(--s2);color:var(--tx);font-weight:600}.si span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.ch{font-size:.72rem;font-weight:600;padding:.05rem .4rem;border-radius:999px;border:1px solid var(--line);color:var(--tx)}.ch.o{background:var(--or);color:#141210;border-color:var(--or)}
+.fl{height:13px;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+.lab{position:absolute;top:.5rem;right:.5rem;background:#141210cc;border-radius:999px;padding:.1rem .55rem;font-size:.75rem}
+.cover{position:relative}.hd{cursor:grab;color:var(--mu);padding:0 .3rem;user-select:none}.vr.drag{opacity:.4}
+.bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.bar input{flex:1;min-width:180px}.bar select{width:auto}
+.chk{display:flex;align-items:center;gap:.6rem;margin-top:.8rem;color:var(--tx)}.chk input{width:auto}
+@media(max-width:800px){.shell{flex-direction:column}aside{width:100%;position:static;height:auto;flex-direction:row;overflow-x:auto;border:0}.si{width:auto;white-space:nowrap}}
 .btn{background:var(--or);color:#141210;border:0;border-radius:10px;padding:.55rem 1rem;font-weight:600;cursor:pointer}
 .btn:hover{background:var(--or2)}.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.g{background:var(--s2);color:var(--tx)}.btn.g:hover{background:var(--line)}.btn.sm{padding:.3rem .7rem;font-size:.85rem}
@@ -25,8 +37,8 @@ input,select,textarea{background:var(--s2);border:1px solid var(--line);border-r
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--or);outline-offset:1px}
 label{display:block;color:var(--mu);font-size:.85rem;margin:.8rem 0 .25rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1.1rem;margin-top:1.2rem}
-.card{background:var(--s1);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;transition:transform .15s,border-color .15s}
-.card:hover{transform:translateY(-3px);border-color:var(--or)}
+.card{background:color-mix(in srgb,var(--c,#ff7a1a) 16%,var(--s1));border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--c,var(--or))}
 .cover{aspect-ratio:2/3;background:linear-gradient(160deg,var(--s2),#3a2a1c);display:grid;place-items:center;font-size:3rem;color:var(--or);overflow:hidden}
 .cover img{width:100%;height:100%;object-fit:cover}
 .card div.m{padding:.7rem .8rem}.card b{display:block;line-height:1.25}.card small,.mu{color:var(--mu)}
@@ -56,13 +68,18 @@ label{display:block;color:var(--mu);font-size:.85rem;margin:.8rem 0 .25rem}
 const API_URL = 'https://lgyabjvckpypucgbmdlt.supabase.co';
 const API_KEY = 'sb_publishable_xpGto1Zm5LdSwcxQHudxVw_y90rX-Vp';
 // ================================================================
-
+const LANG = {PT: 'pt', EN: 'gb', ES: 'es', FR: 'fr', IT: 'it', JP: 'jp'};
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
-let view = 'lib', tab = 'req', ec = null, open = null, cat = [], mine = [], areq = [], users = [], cart = [];
+let D = {me: {}, libs: [], cols: [], fl: [], fc: []};
+let view = 'lib', lib = 'all', q = '', lf = '', mtab = 'col', mc = 'new', open = null, nc = 0;
+let cart = [], mine = [], areq = [], users = [], notes = [], shown = new Set(), dragEl = null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const fd = d => d ? new Date(d + 'T00:00').toLocaleDateString('pt-PT') : '';
+const flag = l => `<img class="fl" src="https://flagcdn.com/24x18/${LANG[l]}.png" alt="">${l}`;
+const libOf = id => D.libs.find(l => l.id === +id);
+const mine_ = l => l && l.owner_id === D.me.id;
 
 async function rpc(fn, a = {}) {
   const r = await fetch(`${API_URL}/rest/v1/rpc/${fn}`, {method: 'POST',
@@ -79,19 +96,22 @@ const run = async f => { try { await f(); } catch (e) { toast(e.message, true); 
 function logout() { S = null; localStorage.removeItem('sess'); draw(); }
 
 async function go(v) {
-  view = v;
+  if (v) view = v;
   await run(async () => {
-    if (view === 'lib') cat = await rpc('catalog');
+    D = await rpc('catalog'); S.name = D.me.name;
     if (view === 'mine') mine = await rpc('my_requests');
-    if (view === 'admin') {
-      if (tab === 'req') areq = await rpc('admin_requests');
-      if (tab === 'usr') users = await rpc('list_users');
-      if (tab === 'col') cat = await rpc('catalog');
-    }
+    if (view === 'users') users = await rpc('list_users');
+    if (view === 'notif') { notes = await rpc('my_notifications'); await rpc('mark_seen'); nc = 0; }
+    if (view === 'manage' && mtab === 'req') areq = await rpc('admin_requests', {p_lib: +lib});
   });
   draw();
 }
 
+function chips(l) {
+  const c = (n, t, cls, i) => n ? `<b class="ch ${cls}" title="${t}">${i}${n}</b>` : '';
+  return c(l.pend, 'Os teus pedidos em espera', '', '⏳') + c(l.hold, 'Volumes teus por devolver', '', '📖') +
+    c(l.req, 'Pedidos por aceitar', 'o', '🔔') + c(l.lent, 'Emprestados por devolver', 'o', '📤');
+}
 function draw() {
   const el = $('#app');
   if (!S) return el.innerHTML = `<form class="login" data-f="login">
@@ -105,25 +125,39 @@ function draw() {
     <label>Nova passe</label><input name="p" type="password" autocomplete="new-password" minlength="3" required>
     <label>Repete a passe</label><input name="p2" type="password" autocomplete="new-password" minlength="3" required>
     <button class="btn" style="width:100%;margin-top:1.2rem">Guardar passe</button></form>`;
-  const nav = [['lib', 'Biblioteca'], ['cart', `Carrinho (${cart.length})`], ['mine', 'Os meus pedidos']];
-  if (S.admin) nav.push(['admin', 'Admin']);
+  const on = (v, l) => view === v && (l === undefined || lib === l) ? 'on' : '';
   el.innerHTML = `<header><div class="logo"><i>A</i>Aki's Library</div>
-    <nav>${nav.map(([v, n]) => `<button data-a="nav" data-v="${v}" class="${view === v ? 'on' : ''}">${n}</button>`).join('')}</nav>
-    <span class="mu">${esc(S.name)}</span><button class="btn g sm" data-a="logout">Sair</button></header>
-    <main>${{lib: libV, cart: cartV, mine: mineV, admin: adminV}[view]()}</main>${open ? modal() : ''}`;
+    <nav><button data-a="nav" data-v="cart" class="${on('cart')}">Carrinho (${cart.length})</button>
+    <button data-a="nav" data-v="mine" class="${on('mine')}">Os meus pedidos</button>
+    ${D.me.admin ? `<button data-a="nav" data-v="users" class="${on('users')}">Utilizadores</button>` : ''}
+    <button data-a="nav" data-v="notif" class="${on('notif')}">🔔${nc ? ' ' + nc : ''}</button></nav>
+    <button class="btn g sm" data-a="nav" data-v="profile" title="Editar perfil">${esc(S.name)}</button><button class="btn g sm" data-a="logout">Sair</button></header>
+    <div class="shell"><aside><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
+    ${D.libs.map(l => `<button class="si ${on('lib', String(l.id))}" data-a="sel" data-id="${l.id}"><i class="dot" style="background:${esc(l.color)}"></i><span>${esc(l.name)}</span>${chips(l)}</button>`).join('')}
+    <button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button></aside>
+    <main>${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV}[view]()}</main></div>${open ? modal() : ''}`;
 }
 
-const cover = c => `<div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}</div>`;
+const filt = () => D.cols.filter(c => (lib === 'all' || c.library_id === +lib) && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
+function gridH() {
+  const cs = filt(); if (!cs.length) return '<div class="empty" style="grid-column:1/-1">Nada encontrado.</div>';
+  return cs.map(c => { const l = libOf(c.library_id), free = c.volumes.filter(v => !v.holder).length;
+    return `<button class="card" style="--c:${esc(l.color)}" data-a="open" data-id="${c.id}"><div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}<span class="lab">${flag(c.lang)}</span></div>
+    <div class="m"><b>${esc(c.title)}</b><small>${free} de ${c.volumes.length} disponíveis</small>${lib === 'all' ? `<br><span class="tag">${esc(l.owner)}</span>` : ''}</div></button>`; }).join('');
+}
+const folBtn = (k, id, on) => `<button class="btn sm ${on ? 'g' : ''}" data-a="fol" data-k="${k}" data-id="${id}" data-on="${on ? 0 : 1}">${on ? '✓ A seguir' : '+ Seguir'}</button>`;
 function libV() {
-  if (!cat.length) return `<h1>Biblioteca</h1><div class="empty">Ainda não há coleções.${S.admin ? ' Cria a primeira na área Admin.' : ''}</div>`;
-  return `<h1>Biblioteca</h1><p class="mu">Escolhe uma coleção para ver os volumes.</p><div class="grid">${cat.map(c => {
-    const free = c.volumes.filter(v => !v.holder).length;
-    return `<button class="card" data-a="open" data-id="${c.id}">${cover(c)}<div class="m"><b>${esc(c.title)}</b><small>${free} de ${c.volumes.length} disponíveis</small></div></button>`;
-  }).join('')}</div>`;
+  const L = lib === 'all' ? null : libOf(lib);
+  return `<div class="top"><div><h1>${L ? esc(L.name) : 'Todas as Bibliotecas'}</h1>${L ? `<span class="tag">${esc(L.owner)}</span>` : ''}</div>
+    ${L ? (mine_(L) ? `<button class="btn" data-a="manage">Gerir biblioteca</button>` : folBtn('l', L.id, D.fl.includes(L.id))) : ''}</div>
+    <div class="bar"><input id="q" placeholder="Pesquisar por nome…" value="${esc(q)}"><select id="lf"><option value="">Todos os idiomas</option>
+    ${Object.keys(LANG).map(l => `<option ${lf === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="grid" id="grid">${gridH()}</div>`;
 }
 function modal() {
-  const c = cat.find(x => x.id === open); if (!c) return '';
-  return `<div class="modal" data-a="close"><div data-stop><div class="top"><h2>${esc(c.title)}</h2><button class="btn g sm" data-a="close">Fechar</button></div>
+  const c = D.cols.find(x => x.id === open); if (!c) return ''; const l = libOf(c.library_id);
+  return `<div class="modal" data-a="close"><div data-stop><div class="top"><h2>${esc(c.title)} <span class="tag">${flag(c.lang)}</span></h2><button class="btn g sm" data-a="close">Fechar</button></div>
+  <p class="mu">${esc(l.name)} · ${esc(l.owner)}</p>${mine_(l) ? '' : `<div style="margin-top:.6rem">${folBtn('c', c.id, D.fc.includes(c.id))}</div>`}
   <div style="margin-top:.8rem">${c.volumes.map(v => {
     const inCart = cart.some(x => x.id === v.id);
     const st = v.holder ? `<span class="tag busy">Com ${esc(v.holder)}</span>` : `<span class="tag free">Disponível</span>`;
@@ -142,70 +176,120 @@ function cartV() {
 }
 function mineV() {
   if (!mine.length) return `<h1>Os meus pedidos</h1><div class="empty">Não tens pedidos nem empréstimos ativos.</div>`;
-  return `<h1>Os meus pedidos</h1><div class="panel">${mine.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span></div>
+  return `<h1>Os meus pedidos</h1><div class="panel">${mine.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.lib)}</small></div>
     ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span><button class="btn d sm" data-a="cancel" data-id="${r.id}">Cancelar</button>`
       : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('')}</div>`;
 }
-function adminV() {
-  const tabs = `<div class="tabs">${[['req', 'Pedidos'], ['usr', 'Utilizadores'], ['col', 'Coleções']].map(([t, n]) => `<button data-a="tab" data-t="${t}" class="${tab === t ? 'on' : ''}">${n}</button>`).join('')}</div>`;
-  if (tab === 'req') return `<h1>Admin</h1>${tabs}<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}</small></div>
-    ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span>${r.busy ? '<span class="tag busy">Volume emprestado</span>'
-      : `<input type="date" id="d${r.id}" value="${today()}" style="width:150px"><button class="btn sm" data-a="conf" data-id="${r.id}">Confirmar empréstimo</button>`}<button class="btn d sm" data-a="cancel" data-id="${r.id}">Apagar</button>`
-      : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
-  if (tab === 'usr') return `<h1>Admin</h1>${tabs}<div class="cols"><form class="panel" data-f="user" style="margin:0"><h2>Novo utilizador</h2>
+function notifV() {
+  return `<h1>Notificações</h1><div class="panel">${notes.map(n => `<div class="row"><div class="g1">${esc(n.text)}<br><small class="mu">${new Date(n.created).toLocaleString('pt-PT')}</small></div>${n.seen ? '' : '<span class="tag busy">Nova</span>'}</div>`).join('') || '<div class="empty">Sem notificações. Segue bibliotecas ou coleções para seres avisado.</div>'}</div>`;
+}
+function profileV() {
+  const m = D.me;
+  return `<h1>O meu perfil</h1><div class="cols"><form class="panel" data-f="profile" style="margin:0"><h2>Dados</h2>
+    <label>Nome</label><input name="n" value="${esc(m.name)}" required><label>Utilizador</label><input name="u" value="${esc(m.username)}" required autocapitalize="none">
+    <label>E-mail</label><input name="e" type="email" value="${esc(m.email)}">
+    <label class="chk"><input type="checkbox" name="nt" ${m.notify ? 'checked' : ''}>Receber notificações (novas coleções e volumes)</label>
+    <label class="chk"><input type="checkbox" name="nb" ${m.notify_browser ? 'checked' : ''}>Avisar pelo browser (Windows), com o site aberto</label>
+    <button class="btn" style="margin-top:1rem">Guardar</button></form>
+    <form class="panel" data-f="pwchg" style="margin:0"><h2>Mudar passe</h2><label>Nova passe</label><input name="p" type="password" minlength="3" required autocomplete="new-password">
+    <label>Repete a passe</label><input name="p2" type="password" minlength="3" required autocomplete="new-password"><button class="btn" style="margin-top:1rem">Mudar passe</button></form></div>`;
+}
+function newlibV() {
+  return `<h1>Nova biblioteca</h1><form class="panel" data-f="newlib" style="max-width:420px"><label>Nome</label><input name="n" required>
+    <label>Cor das coleções</label><input name="c" type="color" value="#ff7a1a" style="height:44px;padding:.2rem"><button class="btn" style="margin-top:1rem">Criar biblioteca</button></form>`;
+}
+function usersV() {
+  return `<h1>Utilizadores</h1><div class="cols"><form class="panel" data-f="user" style="margin:0"><h2>Novo utilizador</h2>
     <label>Nome</label><input name="n" required><label>Utilizador (para entrar)</label><input name="u" required autocapitalize="none">
     <label>Passe provisória</label><input name="p" minlength="3" required><button class="btn" style="margin-top:1rem">Criar utilizador</button></form>
     <div class="panel" style="margin:0"><h2>Utilizadores</h2>${users.map(u => `<div class="row"><div class="g1"><b>${esc(u.name)}</b> <span class="mu">${esc(u.username)}</span></div>
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
-  const cc = cat.find(c => c.id === ec) || cat[0];
-  return `<h1>Admin</h1>${tabs}<div class="cols"><form class="panel" data-f="coll" style="margin:0"><h2>Nova coleção</h2>
-    <label>Título</label><input name="t" required><label>Imagem de capa</label><input name="i" type="file" accept="image/*">
-    <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>
-    <form class="panel" data-f="vols" style="margin:0"><h2>Adicionar volumes</h2><label>Coleção</label>
-    <select name="c" required>${cat.map(c => `<option value="${c.id}">${esc(c.title)} (${c.volumes.length})</option>`).join('')}</select>
-    <label>Novos volumes (um por linha)</label><textarea name="v" rows="5" required></textarea><button class="btn" style="margin-top:1rem">Adicionar volumes</button></form>
-    <div class="panel" style="grid-column:1/-1;margin:0"><h2>Editar volumes</h2><label>Coleção</label>
-    <select data-ch="ec">${cat.map(c => `<option value="${c.id}" ${cc && c.id === cc.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>
-    <div style="margin-top:.8rem">${cc ? cc.volumes.map(v => `<div class="row"><input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px">
-    <button class="btn g sm" data-a="vmv" data-d="-1" data-id="${v.id}" title="Subir" aria-label="Subir">↑</button><button class="btn g sm" data-a="vmv" data-d="1" data-id="${v.id}" title="Descer" aria-label="Descer">↓</button><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>' : '<div class="empty">Cria uma coleção primeiro.</div>'}</div></div></div>`;
+}
+const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+function manageV() {
+  const L = libOf(lib); if (!mine_(L)) return '<div class="empty">Escolhe uma biblioteca tua na barra lateral.</div>';
+  const tabs = `<div class="tabs"><button data-a="mtab" data-t="col" class="${mtab === 'col' ? 'on' : ''}">Coleções e volumes</button>
+    <button data-a="mtab" data-t="req" class="${mtab === 'req' ? 'on' : ''}">Pedidos${L.req ? ' (' + L.req + ')' : ''}</button></div>`;
+  const head = `<div class="top"><h1>Gerir: ${esc(L.name)}</h1><button class="btn g sm" data-a="sel" data-id="${L.id}">Ver biblioteca</button></div>${tabs}`;
+  if (mtab === 'req') return head + `<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}</small></div>
+    ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span>${r.busy ? '<span class="tag busy">Volume emprestado</span>'
+      : `<input type="date" id="d${r.id}" value="${today()}" style="width:150px"><button class="btn sm" data-a="conf" data-id="${r.id}">Confirmar empréstimo</button>`}<button class="btn d sm" data-a="cancel" data-id="${r.id}">Apagar</button>`
+      : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
+  const cs = D.cols.filter(c => c.library_id === L.id), c = cs.find(x => x.id === +mc);
+  const list = `<div class="panel" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
+    ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
+  const edit = !c ? `<form class="panel" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
+      <label>Idioma</label>${langSel('PT')}<label>Imagem de capa</label><input name="i" type="file" accept="image/*">
+      <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
+    : `<div class="panel" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
+      <label>Idioma</label>${langSel(c.lang)}<label>Nova imagem de capa (opcional)</label><input name="i" type="file" accept="image/*"><button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
+      <h2 style="margin-top:1.5rem">Volumes</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p><div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span>
+      <input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px"><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Sem volumes.</div>'}</div>
+      <form data-f="vols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea><button class="btn" style="margin-top:.8rem">Adicionar</button></form></div>`;
+  return head + `<div class="cols">${list}${edit}</div>`;
 }
 
 const shrink = f => new Promise(r => { const i = new Image(); i.onload = () => {
   const k = Math.min(1, 400 / i.width), c = document.createElement('canvas'); c.width = i.width * k; c.height = i.height * k;
   c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL('image/jpeg', .8)); }; i.src = URL.createObjectURL(f); });
 const lines = s => s.split('\n').map(x => x.trim()).filter(Boolean);
+const img = async f => f.i.files[0] ? shrink(f.i.files[0]) : null;
 
 const A = {
-  nav: d => go(d.v), logout, tab: d => { tab = d.t; go('admin'); },
+  nav: d => { open = null; go(d.v); }, logout,
+  sel: d => { lib = d.id; q = ''; lf = ''; open = null; go('lib'); },
+  manage: () => { mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
+  mcsel: d => { mc = d.id; draw(); },
   open: d => { open = +d.id; draw(); }, close: () => { open = null; draw(); },
+  fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_on: d.on === '1'}); go(); }),
   cart: d => { const i = cart.findIndex(x => x.id === +d.id); i < 0 ? cart.push({id: +d.id, title: d.t, label: d.l}) : cart.splice(i, 1); draw(); },
   rm: d => { cart = cart.filter(x => x.id !== +d.id); draw(); },
   send: () => run(async () => { await rpc('request_volumes', {p_ids: cart.map(x => x.id), p_date: $('#cd').value}); cart = []; toast('Pedido enviado'); go('mine'); }),
-  cancel: d => run(async () => { await rpc('cancel_request', {p_id: +d.id}); go(view); }),
-  ret: d => run(async () => { await rpc('return_loan', {p_id: +d.id}); toast('Devolução confirmada'); go(view); }),
-  vmv: d => run(async () => { await rpc('move_volume', {p_id: +d.id, p_dir: +d.d}); go('admin'); }),
-  vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go('admin'); }),
-  vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); toast('Volume apagado'); go('admin'); }); },
-  conf: d => run(async () => { await rpc('confirm_loan', {p_id: +d.id, p_date: $('#d' + d.id).value}); toast('Empréstimo confirmado'); go('admin'); }),
+  cancel: d => run(async () => { await rpc('cancel_request', {p_id: +d.id}); go(); }),
+  ret: d => run(async () => { await rpc('return_loan', {p_id: +d.id}); toast('Devolução confirmada'); go(); }),
+  conf: d => run(async () => { await rpc('confirm_loan', {p_id: +d.id, p_date: $('#d' + d.id).value}); toast('Empréstimo confirmado'); go(); }),
+  vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go(); }),
+  vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); go(); }); },
 };
 const F = {
-  login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value});
-    localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : go('lib'); }),
+  login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value}); localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : start(); }),
   pw: f => run(async () => { if (f.p.value !== f.p2.value) throw new Error('As passes não coincidem');
-    await rpc('set_password', {p_pass: f.p.value}); S.must_change = false; localStorage.setItem('sess', JSON.stringify(S)); go('lib'); }),
-  user: f => run(async () => { await rpc('create_user', {p_user: f.u.value, p_name: f.n.value, p_pass: f.p.value}); toast('Utilizador criado'); go('admin'); }),
-  coll: f => run(async () => { const img = f.i.files[0] ? await shrink(f.i.files[0]) : null;
-    const id = await rpc('add_collection', {p_title: f.t.value, p_image: img}); const l = lines(f.v.value);
-    if (l.length) await rpc('add_volumes', {p_coll: id, p_labels: l}); toast('Coleção criada'); go('admin'); }),
-  vols: f => run(async () => { await rpc('add_volumes', {p_coll: +f.c.value, p_labels: lines(f.v.value)}); toast('Volumes adicionados'); go('admin'); }),
+    await rpc('set_password', {p_pass: f.p.value}); S.must_change = false; localStorage.setItem('sess', JSON.stringify(S)); start(); }),
+  pwchg: f => run(async () => { if (f.p.value !== f.p2.value) throw new Error('As passes não coincidem');
+    await rpc('set_password', {p_pass: f.p.value}); f.reset(); toast('Passe alterada'); }),
+  profile: f => run(async () => { if (f.nb.checked && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+    await rpc('update_profile', {p_user: f.u.value, p_name: f.n.value, p_email: f.e.value, p_notify: f.nt.checked, p_nb: f.nb.checked}); toast('Perfil guardado'); go(); }),
+  newlib: f => run(async () => { lib = String(await rpc('create_library', {p_name: f.n.value, p_color: f.c.value})); toast('Biblioteca criada'); mtab = 'col'; mc = 'new'; go('manage'); }),
+  user: f => run(async () => { await rpc('create_user', {p_user: f.u.value, p_name: f.n.value, p_pass: f.p.value}); toast('Utilizador criado'); go(); }),
+  coll: f => run(async () => { const id = await rpc('add_collection', {p_lib: +lib, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value});
+    const l = lines(f.v.value); if (l.length) await rpc('add_volumes', {p_coll: id, p_labels: l}); mc = String(id); toast('Coleção criada'); go(); }),
+  cedit: f => run(async () => { await rpc('edit_collection', {p_id: +mc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value}); toast('Coleção guardada'); go(); }),
+  vols: f => run(async () => { await rpc('add_volumes', {p_coll: +mc, p_labels: lines(f.v.value)}); toast('Volumes adicionados'); go(); }),
 };
 document.addEventListener('click', e => {
   if (e.target.closest('[data-stop]') && !e.target.closest('button')) return;
   const b = e.target.closest('[data-a]'); if (b && A[b.dataset.a]) A[b.dataset.a](b.dataset);
 });
-document.addEventListener('change', e => { if (e.target.dataset.ch === 'ec') { ec = +e.target.value; draw(); } });
 document.addEventListener('submit', e => { const f = e.target.closest('[data-f]'); if (f) { e.preventDefault(); F[f.dataset.f](f); } });
-S && !S.must_change ? go('lib') : draw();
+document.addEventListener('input', e => { if (e.target.id === 'q') { q = e.target.value; $('#grid').innerHTML = gridH(); } });
+document.addEventListener('change', e => { if (e.target.id === 'lf') { lf = e.target.value; $('#grid').innerHTML = gridH(); } });
+// arrastar volumes
+document.addEventListener('mousedown', e => { const h = e.target.closest('.hd'); if (h) h.closest('.vr').draggable = true; });
+document.addEventListener('dragstart', e => { dragEl = e.target.closest?.('.vr'); if (dragEl) { e.dataTransfer.effectAllowed = 'move'; dragEl.classList.add('drag'); } });
+document.addEventListener('dragover', e => { if (!dragEl) return; e.preventDefault(); const t = e.target.closest('.vr');
+  if (t && t !== dragEl) { const r = t.getBoundingClientRect(); t.parentNode.insertBefore(dragEl, e.clientY > r.top + r.height / 2 ? t.nextSibling : t); } });
+document.addEventListener('dragend', () => { if (!dragEl) return; dragEl.classList.remove('drag'); dragEl.draggable = false; dragEl = null;
+  run(async () => { await rpc('reorder_volumes', {p_ids: [...document.querySelectorAll('.vr')].map(x => +x.dataset.id)}); go(); }); });
+// notificações
+async function poll() {
+  if (!S || S.must_change) return;
+  try { const n = (await rpc('my_notifications')).filter(x => !x.seen); nc = n.length; const b = $('nav button:last-child'); if (b) b.textContent = '🔔' + (nc ? ' ' + nc : '');
+    if (D.me.notify_browser && 'Notification' in window && Notification.permission === 'granted')
+      n.filter(x => !shown.has(x.id)).forEach(x => { shown.add(x.id); new Notification("Aki's Library", {body: x.text}); }); } catch (e) {}
+}
+function start() { go('lib').then(poll); }
+setInterval(poll, 45000);
+S && !S.must_change ? start() : draw();
 </script>
 </body>
 </html>
