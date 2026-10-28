@@ -11,23 +11,24 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,san
 button,input,select,textarea{font:inherit;color:inherit}
 h1{font-size:1.6rem;letter-spacing:-.02em}h2{font-size:1.15rem}
 header{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.8rem 1.2rem;background:var(--s1);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.1rem;margin-right:auto}
+.logo{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:1.1rem}
 .logo i{width:28px;height:28px;border-radius:8px;background:var(--or);display:grid;place-items:center;color:#141210;font-style:normal}
 nav{display:flex;gap:.3rem;flex-wrap:wrap}
 nav button{background:none;border:0;padding:.5rem .9rem;border-radius:999px;color:var(--mu);cursor:pointer}
 nav button:hover{color:var(--tx)}nav button.on{background:var(--or);color:#141210;font-weight:600}
-main{flex:1;min-width:0;max-width:1100px;padding:1.5rem 1.2rem 4rem}
+main{flex:1;min-width:0;padding:1.5rem 1.2rem 4rem}
 .shell{display:flex;align-items:flex-start}
 aside{width:250px;flex:none;position:sticky;top:57px;height:calc(100vh - 57px);overflow:auto;padding:1rem .7rem;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:.2rem}
 .si{display:flex;align-items:center;gap:.5rem;width:100%;background:none;border:0;border-radius:10px;padding:.55rem .7rem;cursor:pointer;text-align:left;color:var(--mu)}
 .si:hover{background:var(--s1);color:var(--tx)}.si.on{background:var(--s2);color:var(--tx);font-weight:600}.si span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dot{width:10px;height:10px;border-radius:50%;flex:none}
 .ch{font-size:.72rem;font-weight:600;padding:.05rem .4rem;border-radius:999px;border:1px solid var(--line);color:var(--tx)}.ch.o{background:var(--or);color:#141210;border-color:var(--or)}
-.fl{height:13px;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
-.lab{position:absolute;top:.5rem;right:.5rem;background:#141210cc;border-radius:999px;padding:.1rem .55rem;font-size:.75rem}
+.fl{height:11px;width:auto;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+.lab{position:absolute;top:.4rem;right:.4rem;display:inline-flex;align-items:center;gap:.3rem;background:#141210cc;border-radius:999px;padding:.1rem .5rem;font-size:.68rem;font-weight:600;color:var(--tx);line-height:1.4}.lab .fl{margin:0}
 .cover{position:relative}.hd{cursor:grab;color:var(--mu);padding:0 .3rem;user-select:none}.vr.drag{opacity:.4}
 .bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.bar input{flex:1;min-width:180px}.bar select{width:auto}
 .chk{display:flex;align-items:center;gap:.6rem;margin-top:.8rem;color:var(--tx)}.chk input{width:auto}
+.scr{height:calc(100vh - 270px);min-height:380px;overflow:auto}.hb{background:none;border:0;font-size:1.3rem;cursor:pointer;color:var(--tx);padding:.1rem .5rem}aside.hide{display:none}
 @media(max-width:800px){.shell{flex-direction:column}aside{width:100%;position:static;height:auto;flex-direction:row;overflow-x:auto;border:0}.si{width:auto;white-space:nowrap}}
 .btn{background:var(--or);color:#141210;border:0;border-radius:10px;padding:.55rem 1rem;font-weight:600;cursor:pointer}
 .btn:hover{background:var(--or2)}.btn:disabled{opacity:.4;cursor:not-allowed}
@@ -40,7 +41,7 @@ label{display:block;color:var(--mu);font-size:.85rem;margin:.8rem 0 .25rem}
 .card{background:color-mix(in srgb,var(--c,#ff7a1a) 16%,var(--s1));border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;transition:transform .15s,border-color .15s}
 .card:hover{transform:translateY(-3px);border-color:var(--c,var(--or))}
 .cover{aspect-ratio:2/3;background:linear-gradient(160deg,var(--s2),#3a2a1c);display:grid;place-items:center;font-size:3rem;color:var(--or);overflow:hidden}
-.cover img{width:100%;height:100%;object-fit:cover}
+.cover>img{width:100%;height:100%;object-fit:cover}
 .card div.m{padding:.7rem .8rem}.card b{display:block;line-height:1.25}.card small,.mu{color:var(--mu)}
 .panel{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:1.2rem;margin-top:1rem}
 .row{display:flex;align-items:center;gap:.8rem;padding:.7rem 0;border-top:1px solid var(--line);flex-wrap:wrap}
@@ -71,6 +72,7 @@ const API_KEY = 'sb_publishable_xpGto1Zm5LdSwcxQHudxVw_y90rX-Vp';
 const LANG = {PT: 'pt', EN: 'gb', ES: 'es', FR: 'fr', IT: 'it', JP: 'jp'};
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
 let D = {me: {}, libs: [], cols: [], fl: [], fc: []};
+let sb = localStorage.getItem('sb') !== '0';
 let view = 'lib', lib = 'all', q = '', lf = '', mtab = 'col', mc = 'new', open = null, nc = 0;
 let cart = [], mine = [], areq = [], users = [], notes = [], shown = new Set(), dragEl = null;
 const $ = s => document.querySelector(s);
@@ -126,15 +128,17 @@ function draw() {
     <label>Repete a passe</label><input name="p2" type="password" autocomplete="new-password" minlength="3" required>
     <button class="btn" style="width:100%;margin-top:1.2rem">Guardar passe</button></form>`;
   const on = (v, l) => view === v && (l === undefined || lib === l) ? 'on' : '';
-  el.innerHTML = `<header><div class="logo"><i>A</i>Aki's Library</div>
+  const owned = D.libs.some(mine_);
+  el.innerHTML = `<header><button class="hb" data-a="sb" aria-label="Abrir ou fechar a barra lateral">☰</button><div class="logo"><i>A</i>Aki's Library</div>
+    ${owned ? '<button class="btn sm" data-a="manage">Gerir biblioteca</button>' : ''}<span style="margin-right:auto"></span>
     <nav><button data-a="nav" data-v="cart" class="${on('cart')}">Carrinho (${cart.length})</button>
     <button data-a="nav" data-v="mine" class="${on('mine')}">Os meus pedidos</button>
     ${D.me.admin ? `<button data-a="nav" data-v="users" class="${on('users')}">Utilizadores</button>` : ''}
     <button data-a="nav" data-v="notif" class="${on('notif')}">🔔${nc ? ' ' + nc : ''}</button></nav>
     <button class="btn g sm" data-a="nav" data-v="profile" title="Editar perfil">${esc(S.name)}</button><button class="btn g sm" data-a="logout">Sair</button></header>
-    <div class="shell"><aside><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
+    <div class="shell"><aside class="${sb ? '' : 'hide'}"><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
     ${D.libs.map(l => `<button class="si ${on('lib', String(l.id))}" data-a="sel" data-id="${l.id}"><i class="dot" style="background:${esc(l.color)}"></i><span>${esc(l.name)}</span>${chips(l)}</button>`).join('')}
-    <button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button></aside>
+    ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}</aside>
     <main>${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV}[view]()}</main></div>${open ? modal() : ''}`;
 }
 
@@ -149,7 +153,7 @@ const folBtn = (k, id, on) => `<button class="btn sm ${on ? 'g' : ''}" data-a="f
 function libV() {
   const L = lib === 'all' ? null : libOf(lib);
   return `<div class="top"><div><h1>${L ? esc(L.name) : 'Todas as Bibliotecas'}</h1>${L ? `<span class="tag">${esc(L.owner)}</span>` : ''}</div>
-    ${L ? (mine_(L) ? `<button class="btn" data-a="manage">Gerir biblioteca</button>` : folBtn('l', L.id, D.fl.includes(L.id))) : ''}</div>
+    ${L && !mine_(L) ? folBtn('l', L.id, D.fl.includes(L.id)) : ''}</div>
     <div class="bar"><input id="q" placeholder="Pesquisar por nome…" value="${esc(q)}"><select id="lf"><option value="">Todos os idiomas</option>
     ${Object.keys(LANG).map(l => `<option ${lf === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="grid" id="grid">${gridH()}</div>`;
@@ -206,23 +210,28 @@ function usersV() {
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
 }
 const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+const IMGB = `<label>Imagem de capa</label><input name="i" type="file" accept="image/*"><input name="iu" placeholder="ou cola aqui o link de uma imagem" style="margin-top:.5rem">
+  <button type="button" class="btn g sm" data-a="isearch" style="margin-top:.5rem">Pesquisar capa online</button>`;
 function manageV() {
   const L = libOf(lib); if (!mine_(L)) return '<div class="empty">Escolhe uma biblioteca tua na barra lateral.</div>';
   const tabs = `<div class="tabs"><button data-a="mtab" data-t="col" class="${mtab === 'col' ? 'on' : ''}">Coleções e volumes</button>
-    <button data-a="mtab" data-t="req" class="${mtab === 'req' ? 'on' : ''}">Pedidos${L.req ? ' (' + L.req + ')' : ''}</button></div>`;
+    <button data-a="mtab" data-t="req" class="${mtab === 'req' ? 'on' : ''}">Pedidos${L.req ? ' (' + L.req + ')' : ''}</button>
+    <button data-a="mtab" data-t="lib" class="${mtab === 'lib' ? 'on' : ''}">Biblioteca</button></div>`;
   const head = `<div class="top"><h1>Gerir: ${esc(L.name)}</h1><button class="btn g sm" data-a="sel" data-id="${L.id}">Ver biblioteca</button></div>${tabs}`;
+  if (mtab === 'lib') return head + `<form class="panel" data-f="elib" style="max-width:420px"><label>Nome</label><input name="n" value="${esc(L.name)}" required>
+    <label>Cor das coleções</label><input name="c" type="color" value="${esc(L.color)}" style="height:44px;padding:.2rem"><button class="btn" style="margin-top:1rem">Guardar biblioteca</button></form>`;
   if (mtab === 'req') return head + `<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}</small></div>
     ${r.status === 'pending' ? `<span class="tag">Pedido em ${fd(r.requested_for)}</span>${r.busy ? '<span class="tag busy">Volume emprestado</span>'
       : `<input type="date" id="d${r.id}" value="${today()}" style="width:150px"><button class="btn sm" data-a="conf" data-id="${r.id}">Confirmar empréstimo</button>`}<button class="btn d sm" data-a="cancel" data-id="${r.id}">Apagar</button>`
       : `<span class="tag busy">Emprestado desde ${fd(r.loan_date)}</span><button class="btn sm" data-a="ret" data-id="${r.id}">Confirmar devolução</button>`}</div>`).join('') || '<div class="empty">Sem pedidos nem empréstimos ativos.</div>'}</div>`;
   const cs = D.cols.filter(c => c.library_id === L.id), c = cs.find(x => x.id === +mc);
-  const list = `<div class="panel" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
+  const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
-  const edit = !c ? `<form class="panel" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
-      <label>Idioma</label>${langSel('PT')}<label>Imagem de capa</label><input name="i" type="file" accept="image/*">
+  const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
+      <label>Idioma</label>${langSel('PT')}${IMGB}
       <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
-    : `<div class="panel" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
-      <label>Idioma</label>${langSel(c.lang)}<label>Nova imagem de capa (opcional)</label><input name="i" type="file" accept="image/*"><button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
+    : `<div class="panel scr" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
+      <label>Idioma</label>${langSel(c.lang)}${IMGB}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
       <h2 style="margin-top:1.5rem">Volumes</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p><div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span>
       <input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px"><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Sem volumes.</div>'}</div>
       <form data-f="vols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea><button class="btn" style="margin-top:.8rem">Adicionar</button></form></div>`;
@@ -233,12 +242,14 @@ const shrink = f => new Promise(r => { const i = new Image(); i.onload = () => {
   const k = Math.min(1, 400 / i.width), c = document.createElement('canvas'); c.width = i.width * k; c.height = i.height * k;
   c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL('image/jpeg', .8)); }; i.src = URL.createObjectURL(f); });
 const lines = s => s.split('\n').map(x => x.trim()).filter(Boolean);
-const img = async f => f.i.files[0] ? shrink(f.i.files[0]) : null;
+const img = async f => f.i.files[0] ? shrink(f.i.files[0]) : (f.iu.value.trim() || null);
+let imgForm = null;
 
 const A = {
   nav: d => { open = null; go(d.v); }, logout,
   sel: d => { lib = d.id; q = ''; lf = ''; open = null; go('lib'); },
-  manage: () => { mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
+  sb: () => { sb = !sb; localStorage.setItem('sb', sb ? '1' : '0'); draw(); },
+  manage: () => { if (!mine_(libOf(lib))) lib = String(D.libs.find(mine_).id); mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
   mcsel: d => { mc = d.id; draw(); },
   open: d => { open = +d.id; draw(); }, close: () => { open = null; draw(); },
   fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_on: d.on === '1'}); go(); }),
@@ -248,10 +259,24 @@ const A = {
   cancel: d => run(async () => { await rpc('cancel_request', {p_id: +d.id}); go(); }),
   ret: d => run(async () => { await rpc('return_loan', {p_id: +d.id}); toast('Devolução confirmada'); go(); }),
   conf: d => run(async () => { await rpc('confirm_loan', {p_id: +d.id, p_date: $('#d' + d.id).value}); toast('Empréstimo confirmado'); go(); }),
+  isearch: (d, b) => { imgForm = b.closest('form'); const t = imgForm.t?.value || '';
+    const m = document.createElement('div'); m.className = 'modal'; m.id = 'ism';
+    m.innerHTML = `<div data-stop><div class="top"><h2>Pesquisar capa</h2><button type="button" class="btn g sm" data-a="isclose">Fechar</button></div>
+    <form data-f="isq" class="bar"><input name="q" value="${esc(t)}" placeholder="Ex.: Batman Cavaleiro Branco 1" required><button class="btn">Pesquisar</button></form>
+    <div class="grid" id="isr" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))"></div>
+    <p class="mu" style="margin-top:1rem;font-size:.85rem">Não encontras a capa certa? <a href="https://leagueofcomicgeeks.com/search?keyword=${encodeURIComponent(t)}" target="_blank" rel="noopener" style="color:var(--or)">Procurar no League of Comic Geeks ↗</a>
+    Clica com o botão direito na imagem, "Copiar endereço da imagem", e cola no campo de link.</p></div>`; document.body.append(m); m.querySelector('input').focus(); },
+  isclose: () => $('#ism')?.remove(),
+  ipick: d => { imgForm.iu.value = d.u; $('#ism').remove(); toast('Capa escolhida. Carrega em Guardar.'); },
   vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go(); }),
   vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); go(); }); },
 };
 const F = {
+  isq: f => run(async () => { $('#isr').innerHTML = '<div class="empty" style="grid-column:1/-1">A procurar…</div>';
+    const j = await (await fetch('https://www.googleapis.com/books/v1/volumes?maxResults=30&q=' + encodeURIComponent(f.q.value))).json();
+    const us = [...new Set((j.items || []).map(i => i.volumeInfo.imageLinks?.thumbnail).filter(Boolean).map(u => u.replace('http://', 'https://').replace('&edge=curl', '')))];
+    $('#isr').innerHTML = us.map(u => `<button type="button" class="card" data-a="ipick" data-u="${esc(u)}"><div class="cover"><img src="${esc(u)}" alt=""></div></button>`).join('') || '<div class="empty" style="grid-column:1/-1">Sem resultados. Tenta outro nome.</div>'; }),
+  elib: f => run(async () => { await rpc('edit_library', {p_id: +lib, p_name: f.n.value, p_color: f.c.value}); toast('Biblioteca guardada'); go(); }),
   login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value}); localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : start(); }),
   pw: f => run(async () => { if (f.p.value !== f.p2.value) throw new Error('As passes não coincidem');
     await rpc('set_password', {p_pass: f.p.value}); S.must_change = false; localStorage.setItem('sess', JSON.stringify(S)); start(); }),
@@ -268,7 +293,7 @@ const F = {
 };
 document.addEventListener('click', e => {
   if (e.target.closest('[data-stop]') && !e.target.closest('button')) return;
-  const b = e.target.closest('[data-a]'); if (b && A[b.dataset.a]) A[b.dataset.a](b.dataset);
+  const b = e.target.closest('[data-a]'); if (b && A[b.dataset.a]) A[b.dataset.a](b.dataset, b);
 });
 document.addEventListener('submit', e => { const f = e.target.closest('[data-f]'); if (f) { e.preventDefault(); F[f.dataset.f](f); } });
 document.addEventListener('input', e => { if (e.target.id === 'q') { q = e.target.value; $('#grid').innerHTML = gridH(); } });
