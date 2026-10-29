@@ -79,7 +79,7 @@ const LANG = {PT: 'pt', BR: 'br', EN: 'gb', ES: 'es', FR: 'fr', IT: 'it', JP: 'j
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
 let D = {me: {}, libs: [], cols: [], fl: [], fc: []};
 let sb = localStorage.getItem('sb') !== '0';
-let P = {}, R = [], mtc = 'vol', rvol = null, X = {locked: [], wls: [], wcols: []}, wl = null, wopen = null, wm = 'wished', wtab = 'col', wmc = 'new';
+let P = {}, R = [], mtc = 'vol', rvol = null, X = {locked: [], wls: [], wcols: [], fw: []}, wl = null, wopen = null, wm = 'wished', wtab = 'col', wmc = 'new', qaForm = null, keepEd = true, lastView = null;
 let view = 'lib', lib = 'all', q = '', lf = '', mtab = 'col', mc = 'new', open = null, nc = 0;
 let cart = [], mine = [], areq = [], users = [], notes = [], shown = new Set(), dragEl = null;
 const $ = s => document.querySelector(s);
@@ -133,6 +133,7 @@ function nbanner() {
 }
 function draw() {
   const el = $('#app');
+  const sc = [...document.querySelectorAll('.scr')].map(e => e.scrollTop), ms = document.querySelector('.modal>div')?.scrollTop, y = window.scrollY, same = lastView === view; lastView = view;
   if (!S) return el.innerHTML = `<form class="login" data-f="login">
     <div class="logo" style="margin-bottom:1.5rem"><i>A</i>Aki's Library</div>
     <h1>Entrar</h1><p class="mu">Usa o utilizador e a passe que o admin te deu.</p>
@@ -160,8 +161,11 @@ function draw() {
     <button class="btn g sm" data-a="nav" data-v="profile" title="Editar perfil">${esc(S.name)}</button><button class="btn g sm" data-a="logout">Sair</button></header>
     <div class="shell"><aside class="${sb ? '' : 'hide'}"><div class="sh">Bibliotecas</div><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
     ${D.libs.map(l => `<button class="si ${on('lib', String(l.id))}" data-a="sel" data-id="${l.id}"><i class="dot" style="background:${esc(l.color)}"></i><span>${esc(l.name)}</span>${chips(l)}</button>`).join('')}
-    ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}<div class="sh">Wishlists</div>${X.wls.map(w => `<button class="si ${view === 'wl' && wl === w.id ? 'on' : ''}" data-a="wsel" data-id="${w.id}"><i class="dot" style="background:${esc(w.color)}"></i><span>${esc(w.name)}</span></button>`).join('')}${myWl ? '' : '<button class="si" data-a="nav" data-v="newwl"><span>+ Nova wishlist</span></button>'}</aside>
+    ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}<div class="sh">Wishlists</div><button class="si ${view === 'wl' && wl === 'all' ? 'on' : ''}" data-a="wsel" data-id="all"><span>Todas as Wishlists</span></button>${X.wls.map(w => `<button class="si ${view === 'wl' && wl === w.id ? 'on' : ''}" data-a="wsel" data-id="${w.id}"><i class="dot" style="background:${esc(w.color)}"></i><span>${esc(w.name)}</span></button>`).join('')}${myWl ? '' : '<button class="si" data-a="nav" data-v="newwl"><span>+ Nova wishlist</span></button>'}</aside>
     <main>${nbanner()}${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV, orders: ordersV, wl: wlV, wmanage: wmanageV, newwl: newwlV}[view]()}</main></div>${open ? modal() : ''}${wopen ? wmodal() : ''}`;
+  if (same) { document.querySelectorAll('.scr').forEach((e, i) => { e.scrollTop = i === 1 && !keepEd ? 0 : (sc[i] || 0); }); window.scrollTo(0, y);
+    const m = document.querySelector('.modal>div'); if (m && ms) m.scrollTop = ms; }
+  keepEd = true;
 }
 
 const filt = () => D.cols.filter(c => (lib === 'all' || c.library_id === +lib) && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
@@ -257,21 +261,22 @@ const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v
 const myW = () => X.wls.find(w => w.owner_id === D.me.id);
 const ownedOf = (w, c) => D.cols.find(x => libOf(x.library_id)?.owner_id === w.owner_id && x.title.trim().toLowerCase() === c.title.trim().toLowerCase());
 function wgridH() {
-  const w = X.wls.find(x => x.id === wl); if (!w) return '';
-  const cs = X.wcols.filter(c => c.wishlist_id === w.id && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
+  const cs = X.wcols.filter(c => (wl === 'all' || c.wishlist_id === wl) && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
   if (!cs.length) return '<div class="empty" style="grid-column:1/-1">Nada encontrado.</div>';
-  return cs.map(c => { const o = ownedOf(w, c);
+  return cs.map(c => { const w = X.wls.find(x => x.id === c.wishlist_id), o = ownedOf(w, c);
     return `<button class="card" style="--c:${esc(w.color)}" data-a="wopen" data-id="${c.id}"><div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}<span class="lab">${flag(c.lang)}</span></div>
-    <div class="m"><b>${esc(c.title)}</b><div style="margin-top:.4rem;display:flex;gap:.4rem;flex-wrap:wrap"><span class="tag red">Wished ${c.volumes.length}</span>${o ? `<span class="tag free">Owned ${o.volumes.length}</span>` : ''}</div></div></button>`; }).join('');
+    <div class="m"><b>${esc(c.title)}</b><div style="margin-top:.4rem;display:flex;gap:.4rem;flex-wrap:wrap"><span class="tag red">Wished ${c.volumes.length}</span>${o ? `<span class="tag free">Owned ${o.volumes.length}</span>` : ''}</div>
+    ${wl === 'all' ? `<span class="tag" style="margin-top:.4rem;display:inline-block">${esc(w.owner)}</span>` : ''}</div></button>`; }).join('');
 }
 function wlV() {
-  const w = X.wls.find(x => x.id === wl); if (!w) return '<div class="empty">Escolhe uma wishlist na barra lateral.</div>';
-  return `<div class="top"><div><h1>${esc(w.name)}</h1><span class="tag">${esc(w.owner)}</span></div></div>
+  const w = wl === 'all' ? null : X.wls.find(x => x.id === wl); if (wl !== 'all' && !w) return '<div class="empty">Escolhe uma wishlist na barra lateral.</div>';
+  return `<div class="top"><div><h1>${w ? esc(w.name) : 'Todas as Wishlists'}</h1>${w ? `<span class="tag">${esc(w.owner)}</span>` : ''}</div>
+    ${w && w.owner_id !== D.me.id ? folBtn('w', w.id, X.fw.includes(w.id)) : ''}</div>
     <div class="bar"><input id="q" placeholder="Pesquisar por nome…" value="${esc(q)}"><select id="lf"><option value="">Todos os idiomas</option>${Object.keys(LANG).map(l => `<option ${lf === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="grid" id="grid">${wgridH()}</div>`;
 }
 function wmodal() {
-  const w = X.wls.find(x => x.id === wl), c = X.wcols.find(x => x.id === wopen); if (!w || !c) return '';
+  const c = X.wcols.find(x => x.id === wopen), w = c && X.wls.find(x => x.id === c.wishlist_id); if (!w || !c) return '';
   const o = ownedOf(w, c), tab = wm === 'owned' && o ? 'owned' : 'wished';
   const rows = (vs, cls) => vs.map(v => `<div class="row ${cls}"><b>${esc(v.label)}</b></div>`).join('') || '<div class="empty">Sem volumes.</div>';
   return `<div class="modal" data-a="wclose"><div data-stop><div class="top"><h2>${esc(c.title)} <span class="tag">${flag(c.lang)}</span></h2><button class="btn g sm" data-a="wclose">Fechar</button></div>
@@ -297,7 +302,7 @@ function wmanageV() {
   const edit = !c ? `<form class="panel scr" data-f="wcoll" style="margin:0"><h2>Nova coleção na wishlist</h2>
       <label>Importar da minha biblioteca (só coleções que não estão Locked)</label><select name="imp" data-ch="imp"><option value="">— escolher —</option>${sugg.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
       <label>Título</label><input name="t" required><label>Idioma</label>${langSel('PT')}${IMGB}
-      <label>Volumes desejados (um por linha)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
+      <label>Volumes desejados (um por linha)</label><textarea name="v" rows="5"></textarea><button type="button" class="btn g sm" data-a="qa" data-m="fill" style="margin-top:.5rem">Quick Add</button><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="wcedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required><label>Idioma</label>${langSel(c.lang)}${IMGB}
       <button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
       <h2 style="margin-top:1.5rem">Volumes desejados</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p>
@@ -329,7 +334,7 @@ function manageV() {
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
   const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
       <label>Idioma</label>${langSel('PT')}<label class="chk"><input type="checkbox" name="lk">🔒 Locked (coleção completa)</label>${IMGB}
-      <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
+      <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button type="button" class="btn g sm" data-a="qa" data-m="fill" style="margin-top:.5rem">Quick Add</button><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
       <label>Idioma</label>${langSel(c.lang)}<label class="chk"><input type="checkbox" name="lk" ${X.locked.includes(c.id) ? 'checked' : ''}>🔒 Locked (coleção completa)</label>${IMGB}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
       <h2 style="margin-top:1.5rem">Volumes</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p><div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span>
@@ -350,14 +355,14 @@ const A = {
   sel: d => { lib = d.id; q = ''; lf = ''; open = null; wopen = null; go('lib'); },
   sb: () => { sb = !sb; localStorage.setItem('sb', sb ? '1' : '0'); draw(); },
   manage: () => { if (!mine_(libOf(lib))) lib = String(D.libs.find(mine_).id); mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
-  mcsel: d => { mc = d.id; draw(); },
-  open: d => { open = +d.id; mtc = 'vol'; rvol = null; draw(); }, wsel: d => { wl = +d.id; q = ''; lf = ''; open = null; wopen = null; go('wl'); },
+  mcsel: d => { mc = d.id; keepEd = false; draw(); },
+  open: d => { open = +d.id; mtc = 'vol'; rvol = null; draw(); }, wsel: d => { wl = d.id === 'all' ? 'all' : +d.id; q = ''; lf = ''; open = null; wopen = null; go('wl'); },
   wopen: d => { wopen = +d.id; wm = 'wished'; draw(); }, wclose: () => { wopen = null; draw(); }, wm: d => { wm = d.t; draw(); },
   wmanage: () => { wtab = 'col'; wmc = 'new'; open = null; wopen = null; go('wmanage'); },
-  wtab: d => { wtab = d.t; draw(); }, wmcsel: d => { wmc = d.id; draw(); },
+  wtab: d => { wtab = d.t; draw(); }, wmcsel: d => { wmc = d.id; keepEd = false; draw(); },
   wcdel: () => { if (confirm('Apagar esta coleção da wishlist e os seus volumes?')) run(async () => { await rpc('delete_wcol', {p_id: +wmc}); wmc = 'new'; go(); }); },
   qaclose: () => $('#qam')?.remove(),
-  qa: d => { const m = document.createElement('div'); m.className = 'modal'; m.id = 'qam';
+  qa: (d, b) => { qaForm = b.closest('form'); const m = document.createElement('div'); m.className = 'modal'; m.id = 'qam';
     m.innerHTML = `<div data-stop><div class="top"><h2>Quick Add</h2><button type="button" class="btn g sm" data-a="qaclose">Fechar</button></div>
     <form data-f="qa" data-m="${d.m || ''}"><label>Prefixo</label><input name="p" value="Vol." required>
     <div style="display:flex;gap:.6rem"><div style="flex:1"><label>De</label><input name="a" type="number" min="0" value="1" required></div><div style="flex:1"><label>Até</label><input name="b" type="number" min="0" value="10" required></div></div>
@@ -365,7 +370,7 @@ const A = {
     document.body.append(m); m.querySelector('input').select(); },
   vrev: d => { rvol = +d.id; mtc = 'rev'; draw(); }, mtc: d => { mtc = d.t; draw(); },
   clrread: () => run(async () => { await rpc('clear_read'); toast('Notificações lidas apagadas'); go(); }), close: () => { open = null; draw(); },
-  fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_on: d.on === '1'}); go(); }),
+  fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_wl: d.k === 'w' ? +d.id : null, p_on: d.on === '1'}); go(); }),
   cart: d => { const i = cart.findIndex(x => x.id === +d.id); i < 0 ? cart.push({id: +d.id, title: d.t, label: d.l}) : cart.splice(i, 1); draw(); },
   rm: d => { cart = cart.filter(x => x.id !== +d.id); draw(); },
   send: () => run(async () => { await rpc('request_volumes', {p_ids: cart.map(x => x.id), p_date: $('#cd').value}); cart = []; toast('Pedido enviado'); go('mine'); }),
@@ -385,7 +390,8 @@ const A = {
 const dcheck = f => { if (f.nd.checked && !f.d.value.trim()) throw new Error('Indica o teu utilizador do Discord ou desmarca os avisos por Discord'); };
 const F = {
   qa: f => run(async () => { const a = +f.a.value, b = +f.b.value; if (b < a || b - a >= 200) throw new Error('Intervalo inválido (máximo 200 volumes de cada vez)');
-    const labels = []; for (let i = a; i <= b; i++) labels.push(`${f.p.value.trim()} ${i}`.trim()); const w = f.dataset.m === 'w';
+    const labels = []; for (let i = a; i <= b; i++) labels.push(`${f.p.value.trim()} ${i}`.trim()); if (f.dataset.m === 'fill') { const t = qaForm.v; t.value = (t.value.trim() ? t.value.trim() + '\n' : '') + labels.join('\n'); $('#qam').remove(); toast(labels.length + ' volumes adicionados à lista'); return; }
+    const w = f.dataset.m === 'w';
     await rpc(w ? 'add_wvols' : 'add_volumes', w ? {p_wcol: +wmc, p_labels: labels} : {p_coll: +mc, p_labels: labels});
     $('#qam').remove(); toast(labels.length + ' volumes adicionados'); go(); }),
   newwl: f => run(async () => { await rpc('create_wishlist', {p_name: f.n.value, p_color: f.c.value}); toast('Wishlist criada'); wtab = 'col'; wmc = 'new'; go('wmanage'); }),
