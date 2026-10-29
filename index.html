@@ -28,7 +28,12 @@ aside{width:250px;flex:none;position:sticky;top:57px;height:calc(100vh - 57px);o
 .cover{position:relative}.hd{cursor:grab;color:var(--mu);padding:0 .3rem;user-select:none}.vr.drag{opacity:.4}
 .bar{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}.bar input{flex:1;min-width:180px}.bar select{width:auto}
 .chk{display:flex;align-items:center;gap:.6rem;margin-top:.8rem;color:var(--tx)}.chk input{width:auto}
-.scr{height:calc(100vh - 270px);min-height:380px;overflow:auto}.hb{background:none;border:0;font-size:1.3rem;cursor:pointer;color:var(--tx);padding:.1rem .5rem}aside.hide{display:none}.card{display:flex;flex-direction:column;justify-content:flex-start}.card .cover{flex:none;width:100%}.card .m{flex:1}
+.scr{height:calc(100vh - 270px);min-height:380px;overflow:auto}.hb{background:none;border:0;font-size:1.3rem;cursor:pointer;color:var(--tx);padding:.1rem .5rem}aside.hide{display:none}
+.sh{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);padding:.8rem .7rem .2rem}
+.lock{position:absolute;top:.4rem;left:.4rem;background:#141210cc;border-radius:999px;padding:.25rem .4rem;font-size:.75rem;line-height:1}
+.tag.red{background:#3a1414;color:#f87171}.rowr,.rowg{border-top:0!important;margin-top:.4rem;padding:.7rem .8rem;border-radius:10px}.rowr{background:#3a1414}.rowg{background:#12301d}
+.vrow{flex-wrap:nowrap;gap:.45rem}.vrow .g1{min-width:70px}.vrow .tag,.vrow .btn,.vrow small{white-space:nowrap}
+@media(max-width:560px){.vrow{flex-wrap:wrap}}.card{display:flex;flex-direction:column;justify-content:flex-start}.card .cover{flex:none;width:100%}.card .m{flex:1}
 .stars{display:inline-block;font-size:1rem;letter-spacing:2px;line-height:1;vertical-align:middle;background:linear-gradient(90deg,var(--or) var(--p,0%),var(--line) var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent}
 @media(max-width:800px){.shell{flex-direction:column}aside{width:100%;position:static;height:auto;flex-direction:row;overflow-x:auto;border:0}.si{width:auto;white-space:nowrap}}
 .btn{background:var(--or);color:#141210;border:0;border-radius:10px;padding:.55rem 1rem;font-weight:600;cursor:pointer}
@@ -50,7 +55,7 @@ label{display:block;color:var(--mu);font-size:.85rem;margin:.8rem 0 .25rem}
 .tag{font-size:.78rem;padding:.15rem .6rem;border-radius:999px;background:var(--s2);color:var(--mu);white-space:nowrap}
 .tag.free{background:#14301f;color:var(--ok)}.tag.busy{background:#3a2412;color:var(--or2)}
 .modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:1rem;z-index:20}
-.modal>div{background:var(--s1);border:1px solid var(--line);border-radius:16px;width:min(560px,100%);max-height:85vh;overflow:auto;padding:1.3rem}
+.modal>div{background:var(--s1);border:1px solid var(--line);border-radius:16px;width:min(660px,100%);max-height:85vh;overflow:auto;padding:1.3rem}
 .top{display:flex;justify-content:space-between;align-items:center;gap:1rem}
 .login{max-width:380px;margin:12vh auto;padding:0 1.2rem}
 .tabs{display:flex;gap:.4rem;margin:1rem 0}
@@ -74,7 +79,7 @@ const LANG = {PT: 'pt', BR: 'br', EN: 'gb', ES: 'es', FR: 'fr', IT: 'it', JP: 'j
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
 let D = {me: {}, libs: [], cols: [], fl: [], fc: []};
 let sb = localStorage.getItem('sb') !== '0';
-let P = {}, R = [], mtc = 'vol', rvol = null;
+let P = {}, R = [], mtc = 'vol', rvol = null, X = {locked: [], wls: [], wcols: []}, wl = null, wopen = null, wm = 'wished', wtab = 'col', wmc = 'new';
 let view = 'lib', lib = 'all', q = '', lf = '', mtab = 'col', mc = 'new', open = null, nc = 0;
 let cart = [], mine = [], areq = [], users = [], notes = [], shown = new Set(), dragEl = null;
 const $ = s => document.querySelector(s);
@@ -106,7 +111,7 @@ function logout() { S = null; localStorage.removeItem('sess'); draw(); }
 async function go(v) {
   if (v) view = v;
   await run(async () => {
-    D = await rpc('catalog'); R = await rpc('ratings'); S.name = D.me.name;
+    D = await rpc('catalog'); R = await rpc('ratings'); X = await rpc('extra'); S.name = D.me.name;
     if (view === 'profile') P = await rpc('my_profile');
     if (view === 'mine') mine = await rpc('my_requests');
     if (view === 'users') users = await rpc('list_users');
@@ -145,25 +150,26 @@ function draw() {
     <label class="chk"><input type="checkbox" name="nd" checked>Avisar por mensagem privada no Discord</label>
     <button class="btn" style="width:100%;margin-top:1.2rem">Guardar e entrar</button></form>`;
   const on = (v, l) => view === v && (l === undefined || lib === l) ? 'on' : '';
-  const owned = D.libs.some(mine_), reqN = D.libs.filter(mine_).reduce((a, l) => a + l.req, 0);
+  const myWl = X.wls.find(w => w.owner_id === D.me.id), owned = D.libs.some(mine_), reqN = D.libs.filter(mine_).reduce((a, l) => a + l.req, 0);
   el.innerHTML = `<header><button class="hb" data-a="sb" aria-label="Abrir ou fechar a barra lateral">☰</button><button class="logo" data-a="home" title="Todas as Bibliotecas"><i>A</i>Aki's Library</button>
-    ${owned ? `<button class="btn sm" data-a="manage">Gerir biblioteca</button><button class="btn g sm" data-a="nav" data-v="orders">Pedidos${reqN ? ` <b class="ch o">${reqN}</b>` : ''}</button>` : ''}<span style="margin-right:auto"></span>
+    ${owned ? '<button class="btn sm" data-a="manage">Gerir biblioteca</button>' : ''}${myWl ? '<button class="btn sm" data-a="wmanage">Gerir Wishlist</button>' : ''}${owned ? `<button class="btn g sm" data-a="nav" data-v="orders">Pedidos${reqN ? ` <b class="ch o">${reqN}</b>` : ''}</button>` : ''}<span style="margin-right:auto"></span>
     <nav><button data-a="nav" data-v="cart" class="${on('cart')}">Carrinho (${cart.length})</button>
     <button data-a="nav" data-v="mine" class="${on('mine')}">Os meus pedidos</button>
     ${D.me.admin ? `<button data-a="nav" data-v="users" class="${on('users')}">Utilizadores</button>` : ''}
     <button data-a="nav" data-v="notif" class="${on('notif')}">🔔${nc ? ' ' + nc : ''}</button></nav>
     <button class="btn g sm" data-a="nav" data-v="profile" title="Editar perfil">${esc(S.name)}</button><button class="btn g sm" data-a="logout">Sair</button></header>
-    <div class="shell"><aside class="${sb ? '' : 'hide'}"><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
+    <div class="shell"><aside class="${sb ? '' : 'hide'}"><div class="sh">Bibliotecas</div><button class="si ${on('lib', 'all')}" data-a="sel" data-id="all"><span>Todas as Bibliotecas</span></button>
     ${D.libs.map(l => `<button class="si ${on('lib', String(l.id))}" data-a="sel" data-id="${l.id}"><i class="dot" style="background:${esc(l.color)}"></i><span>${esc(l.name)}</span>${chips(l)}</button>`).join('')}
-    ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}</aside>
-    <main>${nbanner()}${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV, orders: ordersV}[view]()}</main></div>${open ? modal() : ''}`;
+    ${D.me.admin || !owned ? '<button class="si" data-a="nav" data-v="newlib"><span>+ Nova biblioteca</span></button>' : ''}<div class="sh">Wishlists</div>${X.wls.map(w => `<button class="si ${view === 'wl' && wl === w.id ? 'on' : ''}" data-a="wsel" data-id="${w.id}"><i class="dot" style="background:${esc(w.color)}"></i><span>${esc(w.name)}</span></button>`).join('')}${myWl ? '' : '<button class="si" data-a="nav" data-v="newwl"><span>+ Nova wishlist</span></button>'}</aside>
+    <main>${nbanner()}${{lib: libV, cart: cartV, mine: mineV, users: usersV, profile: profileV, notif: notifV, newlib: newlibV, manage: manageV, orders: ordersV, wl: wlV, wmanage: wmanageV, newwl: newwlV}[view]()}</main></div>${open ? modal() : ''}${wopen ? wmodal() : ''}`;
 }
 
 const filt = () => D.cols.filter(c => (lib === 'all' || c.library_id === +lib) && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
 function gridH() {
+  if (view === 'wl') return wgridH();
   const cs = filt(); if (!cs.length) return '<div class="empty" style="grid-column:1/-1">Nada encontrado.</div>';
   return cs.map(c => { const l = libOf(c.library_id), free = c.volumes.filter(v => !v.holder).length, os = ownerScore(c);
-    return `<button class="card" style="--c:${esc(l.color)}" data-a="open" data-id="${c.id}"><div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}<span class="lab">${flag(c.lang)}</span></div>
+    return `<button class="card" style="--c:${esc(l.color)}" data-a="open" data-id="${c.id}"><div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}${X.locked.includes(c.id) ? '<span class="lock" title="Locked: coleção completa">🔒</span>' : ''}<span class="lab">${flag(c.lang)}</span></div>
     <div class="m"><b>${esc(c.title)}</b><small>${free} de ${c.volumes.length} disponíveis</small>${os != null ? '<br>' + stars(os) : ''}${lib === 'all' ? `<br><span class="tag">${esc(l.owner)}</span>` : ''}</div></button>`; }).join('');
 }
 const folBtn = (k, id, on) => `<button class="btn sm ${on ? 'g' : ''}" data-a="fol" data-k="${k}" data-id="${id}" data-on="${on ? 0 : 1}">${on ? '✓ A seguir' : '+ Seguir'}</button>`;
@@ -185,7 +191,7 @@ function modal() {
     const w = v.waiting ? `<span class="tag">${v.waiting} em espera</span>` : '';
     const btn = v.my_loan ? `<span class="tag busy">Tens este volume</span>` : v.my_req ? `<span class="tag">Pedido feito</span>`
       : `<button class="btn sm ${inCart ? 'g' : ''}" data-a="cart" data-id="${v.id}" data-t="${esc(c.title)}" data-l="${esc(v.label)}">${inCart ? 'Tirar do carrinho' : 'Adicionar'}</button>`;
-    return `<div class="row"><div class="g1"><b>${esc(v.label)}</b></div>${st}${w}${os != null ? stars(os) : ''}<button class="btn sm g" data-a="vrev" data-id="${v.id}">Ratings</button>${btn}</div>`;
+    return `<div class="row vrow"><div class="g1"><b>${esc(v.label)}</b></div>${st}${w}${os != null ? `<span style="white-space:nowrap">${stars(os)}</span>` : ''}<button class="btn sm g" data-a="vrev" data-id="${v.id}">Ratings</button>${btn}</div>`;
   }).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>';
   else {
     const revs = R.filter(r => r.volume_id === v0.id).sort((a, b) => (b.user_id === l.owner_id) - (a.user_id === l.owner_id));
@@ -248,6 +254,59 @@ function usersV() {
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
 }
 const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+const myW = () => X.wls.find(w => w.owner_id === D.me.id);
+const ownedOf = (w, c) => D.cols.find(x => libOf(x.library_id)?.owner_id === w.owner_id && x.title.trim().toLowerCase() === c.title.trim().toLowerCase());
+function wgridH() {
+  const w = X.wls.find(x => x.id === wl); if (!w) return '';
+  const cs = X.wcols.filter(c => c.wishlist_id === w.id && (!lf || c.lang === lf) && c.title.toLowerCase().includes(q.toLowerCase()));
+  if (!cs.length) return '<div class="empty" style="grid-column:1/-1">Nada encontrado.</div>';
+  return cs.map(c => { const o = ownedOf(w, c);
+    return `<button class="card" style="--c:${esc(w.color)}" data-a="wopen" data-id="${c.id}"><div class="cover">${c.image ? `<img src="${esc(c.image)}" alt="">` : esc(c.title[0])}<span class="lab">${flag(c.lang)}</span></div>
+    <div class="m"><b>${esc(c.title)}</b><div style="margin-top:.4rem;display:flex;gap:.4rem;flex-wrap:wrap"><span class="tag red">Wished ${c.volumes.length}</span>${o ? `<span class="tag free">Owned ${o.volumes.length}</span>` : ''}</div></div></button>`; }).join('');
+}
+function wlV() {
+  const w = X.wls.find(x => x.id === wl); if (!w) return '<div class="empty">Escolhe uma wishlist na barra lateral.</div>';
+  return `<div class="top"><div><h1>${esc(w.name)}</h1><span class="tag">${esc(w.owner)}</span></div></div>
+    <div class="bar"><input id="q" placeholder="Pesquisar por nome…" value="${esc(q)}"><select id="lf"><option value="">Todos os idiomas</option>${Object.keys(LANG).map(l => `<option ${lf === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+    <div class="grid" id="grid">${wgridH()}</div>`;
+}
+function wmodal() {
+  const w = X.wls.find(x => x.id === wl), c = X.wcols.find(x => x.id === wopen); if (!w || !c) return '';
+  const o = ownedOf(w, c), tab = wm === 'owned' && o ? 'owned' : 'wished';
+  const rows = (vs, cls) => vs.map(v => `<div class="row ${cls}"><b>${esc(v.label)}</b></div>`).join('') || '<div class="empty">Sem volumes.</div>';
+  return `<div class="modal" data-a="wclose"><div data-stop><div class="top"><h2>${esc(c.title)} <span class="tag">${flag(c.lang)}</span></h2><button class="btn g sm" data-a="wclose">Fechar</button></div>
+  <p class="mu">${esc(w.name)}</p><div class="tabs"><button data-a="wm" data-t="wished" class="${tab === 'wished' ? 'on' : ''}">Wished (${c.volumes.length})</button>
+  ${o ? `<button data-a="wm" data-t="owned" class="${tab === 'owned' ? 'on' : ''}">Owned (${o.volumes.length})</button>` : ''}</div>
+  <div>${tab === 'owned' ? rows(o.volumes, 'rowg') : rows(c.volumes, 'rowr')}</div></div></div>`;
+}
+function newwlV() {
+  const L = D.libs.find(mine_);
+  return `<h1>Nova wishlist</h1><form class="panel" data-f="newwl" style="max-width:420px"><label>Nome</label><input name="n" value="${esc('Wishlist do ' + (L ? L.name : D.me.name))}" required>
+    <label>Cor</label><input name="c" type="color" value="${esc(L ? L.color : '#ff7a1a')}" style="height:44px;padding:.2rem"><button class="btn" style="margin-top:1rem">Criar wishlist</button></form>`;
+}
+function wmanageV() {
+  const W = myW(); if (!W) return '<div class="empty">Cria primeiro a tua wishlist na barra lateral.</div>';
+  const tabs = `<div class="tabs"><button data-a="wtab" data-t="col" class="${wtab === 'col' ? 'on' : ''}">Coleções e volumes</button><button data-a="wtab" data-t="cfg" class="${wtab === 'cfg' ? 'on' : ''}">Wishlist</button></div>`;
+  const head = `<div class="top"><h1>Gerir: ${esc(W.name)}</h1><button class="btn g sm" data-a="wsel" data-id="${W.id}">Ver wishlist</button></div>${tabs}`;
+  if (wtab === 'cfg') return head + `<form class="panel" data-f="ewl" style="max-width:420px"><label>Nome</label><input name="n" value="${esc(W.name)}" required>
+    <label>Cor</label><input name="c" type="color" value="${esc(W.color)}" style="height:44px;padding:.2rem"><p class="mu" style="font-size:.8rem;margin-top:.4rem">Se tiveres uma biblioteca, a cor da wishlist segue a dela.</p><button class="btn" style="margin-top:1rem">Guardar</button></form>`;
+  const cs = X.wcols.filter(c => c.wishlist_id === W.id), c = cs.find(x => x.id === +wmc);
+  const sugg = D.cols.filter(x => mine_(libOf(x.library_id)) && !X.locked.includes(x.id));
+  const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="wmcsel" data-id="new"><span>+ Nova coleção</span></button>
+    ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="wmcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
+  const edit = !c ? `<form class="panel scr" data-f="wcoll" style="margin:0"><h2>Nova coleção na wishlist</h2>
+      <label>Importar da minha biblioteca (só coleções que não estão Locked)</label><select name="imp" data-ch="imp"><option value="">— escolher —</option>${sugg.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
+      <label>Título</label><input name="t" required><label>Idioma</label>${langSel('PT')}${IMGB}
+      <label>Volumes desejados (um por linha)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
+    : `<div class="panel scr" style="margin:0"><form data-f="wcedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required><label>Idioma</label>${langSel(c.lang)}${IMGB}
+      <button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
+      <h2 style="margin-top:1.5rem">Volumes desejados</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p>
+      <div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span><input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px"><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Sem volumes.</div>'}</div>
+      <form data-f="wvols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea>
+      <div style="display:flex;gap:.6rem;margin-top:.8rem"><button class="btn">Adicionar</button><button type="button" class="btn g" data-a="qa" data-m="w">Quick Add</button></div></form>
+      <button class="btn d" style="margin-top:1.5rem" data-a="wcdel">Apagar esta coleção da wishlist</button></div>`;
+  return head + `<div class="cols">${list}${edit}</div>`;
+}
 function ordersV() {
   const multi = D.libs.filter(mine_).length > 1;
   return '<h1>Pedidos</h1>' + `<div class="panel">${areq.map(r => `<div class="row"><div class="g1"><b>${esc(r.title)}</b> <span class="mu">${esc(r.label)}</span><br><small class="mu">${esc(r.user)}${multi ? ' · ' + esc(r.lib) : ''}</small></div>
@@ -269,13 +328,13 @@ function manageV() {
   const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
   const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
-      <label>Idioma</label>${langSel('PT')}${IMGB}
+      <label>Idioma</label>${langSel('PT')}<label class="chk"><input type="checkbox" name="lk">🔒 Locked (coleção completa)</label>${IMGB}
       <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
-      <label>Idioma</label>${langSel(c.lang)}${IMGB}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
+      <label>Idioma</label>${langSel(c.lang)}<label class="chk"><input type="checkbox" name="lk" ${X.locked.includes(c.id) ? 'checked' : ''}>🔒 Locked (coleção completa)</label>${IMGB}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
       <h2 style="margin-top:1.5rem">Volumes</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p><div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span>
       <input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px"><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Sem volumes.</div>'}</div>
-      <form data-f="vols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea><button class="btn" style="margin-top:.8rem">Adicionar</button></form></div>`;
+      <form data-f="vols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea><div style="display:flex;gap:.6rem;margin-top:.8rem"><button class="btn">Adicionar</button><button type="button" class="btn g" data-a="qa">Quick Add</button></div></form></div>`;
   return head + `<div class="cols">${list}${edit}</div>`;
 }
 
@@ -286,13 +345,25 @@ const lines = s => s.split('\n').map(x => x.trim()).filter(Boolean);
 const img = async f => f.i.files[0] ? shrink(f.i.files[0]) : (f.iu.value.trim() || null);
 
 const A = {
-  nav: d => { open = null; go(d.v); }, logout,
-  home: () => { lib = 'all'; q = ''; lf = ''; open = null; go('lib'); },
-  sel: d => { lib = d.id; q = ''; lf = ''; open = null; go('lib'); },
+  nav: d => { open = null; wopen = null; go(d.v); }, logout,
+  home: () => { lib = 'all'; q = ''; lf = ''; open = null; wopen = null; go('lib'); },
+  sel: d => { lib = d.id; q = ''; lf = ''; open = null; wopen = null; go('lib'); },
   sb: () => { sb = !sb; localStorage.setItem('sb', sb ? '1' : '0'); draw(); },
   manage: () => { if (!mine_(libOf(lib))) lib = String(D.libs.find(mine_).id); mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
   mcsel: d => { mc = d.id; draw(); },
-  open: d => { open = +d.id; mtc = 'vol'; rvol = null; draw(); }, vrev: d => { rvol = +d.id; mtc = 'rev'; draw(); }, mtc: d => { mtc = d.t; draw(); },
+  open: d => { open = +d.id; mtc = 'vol'; rvol = null; draw(); }, wsel: d => { wl = +d.id; q = ''; lf = ''; open = null; wopen = null; go('wl'); },
+  wopen: d => { wopen = +d.id; wm = 'wished'; draw(); }, wclose: () => { wopen = null; draw(); }, wm: d => { wm = d.t; draw(); },
+  wmanage: () => { wtab = 'col'; wmc = 'new'; open = null; wopen = null; go('wmanage'); },
+  wtab: d => { wtab = d.t; draw(); }, wmcsel: d => { wmc = d.id; draw(); },
+  wcdel: () => { if (confirm('Apagar esta coleção da wishlist e os seus volumes?')) run(async () => { await rpc('delete_wcol', {p_id: +wmc}); wmc = 'new'; go(); }); },
+  qaclose: () => $('#qam')?.remove(),
+  qa: d => { const m = document.createElement('div'); m.className = 'modal'; m.id = 'qam';
+    m.innerHTML = `<div data-stop><div class="top"><h2>Quick Add</h2><button type="button" class="btn g sm" data-a="qaclose">Fechar</button></div>
+    <form data-f="qa" data-m="${d.m || ''}"><label>Prefixo</label><input name="p" value="Vol." required>
+    <div style="display:flex;gap:.6rem"><div style="flex:1"><label>De</label><input name="a" type="number" min="0" value="1" required></div><div style="flex:1"><label>Até</label><input name="b" type="number" min="0" value="10" required></div></div>
+    <p class="mu" style="font-size:.8rem;margin-top:.5rem">Ex.: prefixo "Vol.", de 1 até 20, cria Vol. 1, Vol. 2, … Vol. 20.</p><button class="btn" data-a="x" style="margin-top:1rem">Adicionar</button></form></div>`;
+    document.body.append(m); m.querySelector('input').select(); },
+  vrev: d => { rvol = +d.id; mtc = 'rev'; draw(); }, mtc: d => { mtc = d.t; draw(); },
   clrread: () => run(async () => { await rpc('clear_read'); toast('Notificações lidas apagadas'); go(); }), close: () => { open = null; draw(); },
   fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_on: d.on === '1'}); go(); }),
   cart: d => { const i = cart.findIndex(x => x.id === +d.id); i < 0 ? cart.push({id: +d.id, title: d.t, label: d.l}) : cart.splice(i, 1); draw(); },
@@ -308,11 +379,21 @@ const A = {
   ntest: () => run(async () => { if (!('Notification' in window)) throw new Error('Este browser não suporta notificações');
     if (Notification.permission === 'default') await Notification.requestPermission();
     await rpc('send_test'); toast(Notification.permission === 'granted' ? 'Teste enviado: vê o browser e o Discord' : 'Teste enviado, mas o browser tem as notificações bloqueadas (cadeado junto ao endereço)'); draw(); poll(); }),
-  vsave: d => run(async () => { await rpc('edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go(); }),
-  vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc('delete_volume', {p_id: +d.id}); go(); }); },
+  vsave: d => run(async () => { await rpc(view === 'wmanage' ? 'edit_wvol' : 'edit_volume', {p_id: +d.id, p_label: $('#v' + d.id).value}); toast('Volume guardado'); go(); }),
+  vdel: d => { if (confirm('Apagar este volume e todos os pedidos e empréstimos dele?')) run(async () => { await rpc(view === 'wmanage' ? 'delete_wvol' : 'delete_volume', {p_id: +d.id}); go(); }); },
 };
 const dcheck = f => { if (f.nd.checked && !f.d.value.trim()) throw new Error('Indica o teu utilizador do Discord ou desmarca os avisos por Discord'); };
 const F = {
+  qa: f => run(async () => { const a = +f.a.value, b = +f.b.value; if (b < a || b - a >= 200) throw new Error('Intervalo inválido (máximo 200 volumes de cada vez)');
+    const labels = []; for (let i = a; i <= b; i++) labels.push(`${f.p.value.trim()} ${i}`.trim()); const w = f.dataset.m === 'w';
+    await rpc(w ? 'add_wvols' : 'add_volumes', w ? {p_wcol: +wmc, p_labels: labels} : {p_coll: +mc, p_labels: labels});
+    $('#qam').remove(); toast(labels.length + ' volumes adicionados'); go(); }),
+  newwl: f => run(async () => { await rpc('create_wishlist', {p_name: f.n.value, p_color: f.c.value}); toast('Wishlist criada'); wtab = 'col'; wmc = 'new'; go('wmanage'); }),
+  ewl: f => run(async () => { await rpc('edit_wishlist', {p_id: myW().id, p_name: f.n.value, p_color: f.c.value}); toast('Wishlist guardada'); go(); }),
+  wcoll: f => run(async () => { const id = await rpc('add_wcol', {p_wl: myW().id, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value});
+    const l = lines(f.v.value); if (l.length) await rpc('add_wvols', {p_wcol: id, p_labels: l}); wmc = String(id); toast('Coleção adicionada'); go(); }),
+  wcedit: f => run(async () => { await rpc('edit_wcol', {p_id: +wmc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value}); toast('Coleção guardada'); go(); }),
+  wvols: f => run(async () => { await rpc('add_wvols', {p_wcol: +wmc, p_labels: lines(f.v.value)}); toast('Volumes adicionados'); go(); }),
   rate: f => run(async () => { await rpc('rate', {p_vol: rvol, p_score: f.s.value === '' ? null : +f.s.value, p_review: f.r.value}); mtc = 'rev'; toast('Avaliação guardada'); go(); }),
   elib: f => run(async () => { await rpc('edit_library', {p_id: +lib, p_name: f.n.value, p_color: f.c.value}); toast('Biblioteca guardada'); go(); }),
   login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value}); localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : start(); }),
@@ -326,9 +407,9 @@ const F = {
     await rpc('update_profile', {p_user: f.u.value, p_name: f.n.value, p_discord: f.d.value, p_notify: f.nt.checked, p_nb: f.nb.checked, p_nd: f.nd.checked}); toast('Perfil guardado'); go(); }),
   newlib: f => run(async () => { lib = String(await rpc('create_library', {p_name: f.n.value, p_color: f.c.value})); toast('Biblioteca criada'); mtab = 'col'; mc = 'new'; go('manage'); }),
   user: f => run(async () => { await rpc('create_user', {p_user: f.u.value, p_name: f.n.value, p_pass: f.p.value}); toast('Utilizador criado'); go(); }),
-  coll: f => run(async () => { const id = await rpc('add_collection', {p_lib: +lib, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value});
+  coll: f => run(async () => { const id = await rpc('add_collection', {p_lib: +lib, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value, p_locked: f.lk.checked});
     const l = lines(f.v.value); if (l.length) await rpc('add_volumes', {p_coll: id, p_labels: l}); mc = String(id); toast('Coleção criada'); go(); }),
-  cedit: f => run(async () => { await rpc('edit_collection', {p_id: +mc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value}); toast('Coleção guardada'); go(); }),
+  cedit: f => run(async () => { await rpc('edit_collection', {p_id: +mc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value, p_locked: f.lk.checked}); toast('Coleção guardada'); go(); }),
   vols: f => run(async () => { await rpc('add_volumes', {p_coll: +mc, p_labels: lines(f.v.value)}); toast('Volumes adicionados'); go(); }),
 };
 document.addEventListener('click', e => {
@@ -337,14 +418,16 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('submit', e => { const f = e.target.closest('[data-f]'); if (f) { e.preventDefault(); F[f.dataset.f](f); } });
 document.addEventListener('input', e => { if (e.target.id === 'q') { q = e.target.value; $('#grid').innerHTML = gridH(); } });
-document.addEventListener('change', e => { if (e.target.id === 'lf') { lf = e.target.value; $('#grid').innerHTML = gridH(); } });
+document.addEventListener('change', e => { if (e.target.id === 'lf') { lf = e.target.value; $('#grid').innerHTML = gridH(); }
+  if (e.target.dataset.ch === 'imp') { const c = D.cols.find(x => x.id === +e.target.value), f = e.target.form;
+    if (c) { f.t.value = c.title; f.l.value = c.lang; f.iu.value = c.image || ''; toast('Dados importados (sem volumes)'); } } });
 // arrastar volumes
 document.addEventListener('mousedown', e => { const h = e.target.closest('.hd'); if (h) h.closest('.vr').draggable = true; });
 document.addEventListener('dragstart', e => { dragEl = e.target.closest?.('.vr'); if (dragEl) { e.dataTransfer.effectAllowed = 'move'; dragEl.classList.add('drag'); } });
 document.addEventListener('dragover', e => { if (!dragEl) return; e.preventDefault(); const t = e.target.closest('.vr');
   if (t && t !== dragEl) { const r = t.getBoundingClientRect(); t.parentNode.insertBefore(dragEl, e.clientY > r.top + r.height / 2 ? t.nextSibling : t); } });
 document.addEventListener('dragend', () => { if (!dragEl) return; dragEl.classList.remove('drag'); dragEl.draggable = false; dragEl = null;
-  run(async () => { await rpc('reorder_volumes', {p_ids: [...document.querySelectorAll('.vr')].map(x => +x.dataset.id)}); go(); }); });
+  run(async () => { await rpc(view === 'wmanage' ? 'reorder_wvols' : 'reorder_volumes', {p_ids: [...document.querySelectorAll('.vr')].map(x => +x.dataset.id)}); go(); }); });
 // notificações
 async function poll() {
   if (!S || S.must_change) return;
