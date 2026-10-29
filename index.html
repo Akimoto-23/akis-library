@@ -74,7 +74,7 @@ const LANG = {PT: 'pt', BR: 'br', EN: 'gb', ES: 'es', FR: 'fr', IT: 'it', JP: 'j
 let S = JSON.parse(localStorage.getItem('sess') || 'null');
 let D = {me: {}, libs: [], cols: [], fl: [], fc: []};
 let sb = localStorage.getItem('sb') !== '0';
-let P = {}, R = [], mtc = 'vol';
+let P = {}, R = [], mtc = 'vol', rvol = null;
 let view = 'lib', lib = 'all', q = '', lf = '', mtab = 'col', mc = 'new', open = null, nc = 0;
 let cart = [], mine = [], areq = [], users = [], notes = [], shown = new Set(), dragEl = null;
 const $ = s => document.querySelector(s);
@@ -84,10 +84,9 @@ const fd = d => d ? new Date(d + 'T00:00').toLocaleDateString('pt-PT') : '';
 const flag = l => `<img class="fl" src="https://flagcdn.com/w40/${LANG[l]}.png" alt="${l}" title="${l}">`;
 const libOf = id => D.libs.find(l => l.id === +id);
 const stars = v => v == null ? '' : `<span class="stars" style="--p:${v * 10}%" title="${v}/10">★★★★★</span> <small class="mu">${(+v).toFixed(1)}/10</small>`;
-const ownerRev = c => R.find(r => r.collection_id === c.id && r.user_id === libOf(c.library_id).owner_id);
-const ownerScore = c => ownerRev(c)?.score ?? null;
-const revB = o => `<label>Nota do dono (0 a 10, opcional)</label><input name="sc" type="number" min="0" max="10" step="0.1" placeholder="ex.: 8.5" value="${o && o.score != null ? o.score : ''}">
-  <label>Review (opcional)</label><textarea name="rv" rows="3">${esc(o?.review)}</textarea>`;
+const ownerRev = (v, c) => R.find(r => r.volume_id === v.id && r.user_id === libOf(c.library_id).owner_id);
+const ownerScore = c => { const a = c.volumes.map(v => ownerRev(v, c)?.score).filter(x => x != null);
+  return a.length ? Math.round(a.reduce((x, y) => x + +y, 0) / a.length * 10) / 10 : null; };
 const mine_ = l => l && l.owner_id === D.me.id;
 
 async function rpc(fn, a = {}) {
@@ -178,29 +177,32 @@ function libV() {
 }
 function modal() {
   const c = D.cols.find(x => x.id === open); if (!c) return ''; const l = libOf(c.library_id);
-  const revs = R.filter(r => r.collection_id === c.id).sort((a, b) => (b.user_id === l.owner_id) - (a.user_id === l.owner_id));
-  const my = revs.find(r => r.user_id === D.me.id);
-  const tabs = `<div class="tabs"><button data-a="mtc" data-t="vol" class="${mtc === 'vol' ? 'on' : ''}">Volumes</button>
-    <button data-a="mtc" data-t="rev" class="${mtc !== 'vol' ? 'on' : ''}">Avaliações (${revs.length})</button></div>`;
-  const vols = c.volumes.map(v => {
-    const inCart = cart.some(x => x.id === v.id);
+  const v0 = mtc === 'vol' ? null : c.volumes.find(v => v.id === rvol);
+  let body;
+  if (!v0) body = c.volumes.map(v => {
+    const inCart = cart.some(x => x.id === v.id), os = ownerRev(v, c)?.score;
     const st = v.holder ? `<span class="tag busy">Com ${esc(v.holder)}</span>` : `<span class="tag free">Disponível</span>`;
     const w = v.waiting ? `<span class="tag">${v.waiting} em espera</span>` : '';
     const btn = v.my_loan ? `<span class="tag busy">Tens este volume</span>` : v.my_req ? `<span class="tag">Pedido feito</span>`
       : `<button class="btn sm ${inCart ? 'g' : ''}" data-a="cart" data-id="${v.id}" data-t="${esc(c.title)}" data-l="${esc(v.label)}">${inCart ? 'Tirar do carrinho' : 'Adicionar'}</button>`;
-    return `<div class="row"><div class="g1"><b>${esc(v.label)}</b></div>${st}${w}${btn}</div>`;
+    return `<div class="row"><div class="g1"><b>${esc(v.label)}</b></div>${st}${w}${os != null ? stars(os) : ''}<button class="btn sm g" data-a="vrev" data-id="${v.id}">Ratings</button>${btn}</div>`;
   }).join('') || '<div class="empty">Esta coleção ainda não tem volumes.</div>';
-  const list = revs.map(r => `<div class="row" style="align-items:flex-start"><div class="g1"><span class="tag">${esc(r.user)}</span>${r.user_id === l.owner_id ? ' <span class="tag busy">Dono</span>' : ''}
-    ${r.score != null ? '<div style="margin-top:.4rem">' + stars(r.score) + '</div>' : ''}${r.review ? `<p style="margin-top:.4rem;white-space:pre-wrap">${esc(r.review)}</p>` : ''}</div></div>`).join('')
-    || '<div class="empty">Ainda ninguém avaliou esta coleção.</div>';
-  const form = `<form data-f="rate"><label>Nota (0 a 10, opcional)</label><input name="s" type="number" min="0" max="10" step="0.1" value="${my && my.score != null ? my.score : ''}">
+  else {
+    const revs = R.filter(r => r.volume_id === v0.id).sort((a, b) => (b.user_id === l.owner_id) - (a.user_id === l.owner_id));
+    const my = revs.find(r => r.user_id === D.me.id);
+    body = `<div class="top"><button class="btn g sm" data-a="mtc" data-t="vol">← Volumes</button>${mtc === 'rate' ? '' : `<button class="btn sm" data-a="mtc" data-t="rate">${my ? 'Editar rating' : 'Adicionar rating'}</button>`}</div>
+    <h3 style="margin-top:.8rem">Ratings: ${esc(v0.label)}</h3>` + (mtc === 'rate'
+      ? `<form data-f="rate"><label>Nota (0 a 10, opcional)</label><input name="s" type="number" min="0" max="10" step="0.1" value="${my && my.score != null ? my.score : ''}">
     <label>Review (opcional)</label><textarea name="r" rows="5">${esc(my?.review)}</textarea>
-    <p class="mu" style="font-size:.8rem;margin-top:.4rem">Deixa tudo vazio para apagar a tua avaliação.</p>
-    <div style="display:flex;gap:.6rem;margin-top:.8rem"><button class="btn" data-a="x">Guardar</button><button type="button" class="btn g" data-a="mtc" data-t="rev">Cancelar</button></div></form>`;
+    <p class="mu" style="font-size:.8rem;margin-top:.4rem">Deixa tudo vazio para apagar o teu rating.</p>
+    <div style="display:flex;gap:.6rem;margin-top:.8rem"><button class="btn" data-a="x">Guardar</button><button type="button" class="btn g" data-a="mtc" data-t="rev">Cancelar</button></div></form>`
+      : revs.map(r => `<div class="row" style="align-items:flex-start"><div class="g1"><span class="tag">${esc(r.user)}</span>${r.user_id === l.owner_id ? ' <span class="tag busy">Dono</span>' : ''}
+    ${r.score != null ? '<div style="margin-top:.4rem">' + stars(r.score) + '</div>' : ''}${r.review ? `<p style="margin-top:.4rem;white-space:pre-wrap">${esc(r.review)}</p>` : ''}</div></div>`).join('')
+        || '<div class="empty">Ainda ninguém avaliou este volume.</div>');
+  }
   return `<div class="modal" data-a="close"><div data-stop><div class="top"><h2>${esc(c.title)} <span class="tag">${flag(c.lang)}</span></h2><button class="btn g sm" data-a="close">Fechar</button></div>
-  <p class="mu">${esc(l.name)} · ${esc(l.owner)}</p>
-  <div style="margin-top:.6rem;display:flex;gap:.5rem;flex-wrap:wrap">${mine_(l) ? '' : folBtn('c', c.id, D.fc.includes(c.id))}<button class="btn sm g" data-a="mtc" data-t="rate">${my ? 'Editar avaliação' : 'Avaliar'}</button></div>
-  ${tabs}<div>${mtc === 'vol' ? vols : mtc === 'rate' ? form : list}</div></div></div>`;
+  <p class="mu">${esc(l.name)} · ${esc(l.owner)}</p>${mine_(l) ? '' : `<div style="margin-top:.6rem">${folBtn('c', c.id, D.fc.includes(c.id))}</div>`}
+  <div style="margin-top:.8rem">${body}</div></div></div>`;
 }
 function cartV() {
   if (!cart.length) return `<h1>Carrinho</h1><div class="empty">O carrinho está vazio. Escolhe volumes na biblioteca.</div>`;
@@ -268,9 +270,9 @@ function manageV() {
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
   const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
       <label>Idioma</label>${langSel('PT')}${IMGB}
-      ${revB(null)}<label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
+      <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
-      <label>Idioma</label>${langSel(c.lang)}${IMGB}${revB(ownerRev(c))}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
+      <label>Idioma</label>${langSel(c.lang)}${IMGB}<button class="btn" style="margin-top:1rem">Guardar coleção</button></form>
       <h2 style="margin-top:1.5rem">Volumes</h2><p class="mu" style="font-size:.85rem">Arrasta o ⠿ para mudar a ordem.</p><div id="vl">${c.volumes.map(v => `<div class="row vr" data-id="${v.id}"><span class="hd" title="Arrastar">⠿</span>
       <input id="v${v.id}" value="${esc(v.label)}" style="flex:1;min-width:140px"><button class="btn sm" data-a="vsave" data-id="${v.id}">Guardar</button><button class="btn d sm" data-a="vdel" data-id="${v.id}">Apagar</button></div>`).join('') || '<div class="empty">Sem volumes.</div>'}</div>
       <form data-f="vols"><label>Adicionar volumes (um por linha)</label><textarea name="v" rows="3" required></textarea><button class="btn" style="margin-top:.8rem">Adicionar</button></form></div>`;
@@ -290,7 +292,7 @@ const A = {
   sb: () => { sb = !sb; localStorage.setItem('sb', sb ? '1' : '0'); draw(); },
   manage: () => { if (!mine_(libOf(lib))) lib = String(D.libs.find(mine_).id); mtab = 'col'; mc = 'new'; go('manage'); }, mtab: d => { mtab = d.t; go('manage'); },
   mcsel: d => { mc = d.id; draw(); },
-  open: d => { open = +d.id; mtc = 'vol'; draw(); }, mtc: d => { mtc = d.t; draw(); },
+  open: d => { open = +d.id; mtc = 'vol'; rvol = null; draw(); }, vrev: d => { rvol = +d.id; mtc = 'rev'; draw(); }, mtc: d => { mtc = d.t; draw(); },
   clrread: () => run(async () => { await rpc('clear_read'); toast('Notificações lidas apagadas'); go(); }), close: () => { open = null; draw(); },
   fol: d => run(async () => { await rpc('follow', {p_lib: d.k === 'l' ? +d.id : null, p_col: d.k === 'c' ? +d.id : null, p_on: d.on === '1'}); go(); }),
   cart: d => { const i = cart.findIndex(x => x.id === +d.id); i < 0 ? cart.push({id: +d.id, title: d.t, label: d.l}) : cart.splice(i, 1); draw(); },
@@ -311,7 +313,7 @@ const A = {
 };
 const dcheck = f => { if (f.nd.checked && !f.d.value.trim()) throw new Error('Indica o teu utilizador do Discord ou desmarca os avisos por Discord'); };
 const F = {
-  rate: f => run(async () => { await rpc('rate', {p_coll: open, p_score: f.s.value === '' ? null : +f.s.value, p_review: f.r.value}); mtc = 'rev'; toast('Avaliação guardada'); go(); }),
+  rate: f => run(async () => { await rpc('rate', {p_vol: rvol, p_score: f.s.value === '' ? null : +f.s.value, p_review: f.r.value}); mtc = 'rev'; toast('Avaliação guardada'); go(); }),
   elib: f => run(async () => { await rpc('edit_library', {p_id: +lib, p_name: f.n.value, p_color: f.c.value}); toast('Biblioteca guardada'); go(); }),
   login: f => run(async () => { S = await rpc('login', {p_user: f.u.value, p_pass: f.p.value}); localStorage.setItem('sess', JSON.stringify(S)); S.must_change ? draw() : start(); }),
   pw: f => run(async () => { if (f.p.value !== f.p2.value) throw new Error('As passes não coincidem'); dcheck(f);
@@ -325,10 +327,8 @@ const F = {
   newlib: f => run(async () => { lib = String(await rpc('create_library', {p_name: f.n.value, p_color: f.c.value})); toast('Biblioteca criada'); mtab = 'col'; mc = 'new'; go('manage'); }),
   user: f => run(async () => { await rpc('create_user', {p_user: f.u.value, p_name: f.n.value, p_pass: f.p.value}); toast('Utilizador criado'); go(); }),
   coll: f => run(async () => { const id = await rpc('add_collection', {p_lib: +lib, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value});
-    const l = lines(f.v.value); if (l.length) await rpc('add_volumes', {p_coll: id, p_labels: l});
-    if (f.sc.value !== '' || f.rv.value.trim()) await rpc('rate', {p_coll: id, p_score: f.sc.value === '' ? null : +f.sc.value, p_review: f.rv.value}); mc = String(id); toast('Coleção criada'); go(); }),
-  cedit: f => run(async () => { await rpc('edit_collection', {p_id: +mc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value});
-    await rpc('rate', {p_coll: +mc, p_score: f.sc.value === '' ? null : +f.sc.value, p_review: f.rv.value}); toast('Coleção guardada'); go(); }),
+    const l = lines(f.v.value); if (l.length) await rpc('add_volumes', {p_coll: id, p_labels: l}); mc = String(id); toast('Coleção criada'); go(); }),
+  cedit: f => run(async () => { await rpc('edit_collection', {p_id: +mc, p_title: f.t.value, p_image: await img(f), p_lang: f.l.value}); toast('Coleção guardada'); go(); }),
   vols: f => run(async () => { await rpc('add_volumes', {p_coll: +mc, p_labels: lines(f.v.value)}); toast('Volumes adicionados'); go(); }),
 };
 document.addEventListener('click', e => {
