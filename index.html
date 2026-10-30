@@ -258,6 +258,7 @@ function usersV() {
     ${u.must_change ? '<span class="tag busy">Ainda não entrou</span>' : ''}</div>`).join('')}</div></div>`;
 }
 const langSel = v => `<select name="l">${Object.keys(LANG).map(l => `<option ${v === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+const nt = s => String(s).trim().toLowerCase();
 const myW = () => X.wls.find(w => w.owner_id === D.me.id);
 const ownedOf = (w, c) => D.cols.find(x => libOf(x.library_id)?.owner_id === w.owner_id && x.title.trim().toLowerCase() === c.title.trim().toLowerCase());
 function wgridH() {
@@ -296,11 +297,11 @@ function wmanageV() {
   if (wtab === 'cfg') return head + `<form class="panel" data-f="ewl" style="max-width:420px"><label>Nome</label><input name="n" value="${esc(W.name)}" required>
     <label>Cor</label><input name="c" type="color" value="${esc(W.color)}" style="height:44px;padding:.2rem"><p class="mu" style="font-size:.8rem;margin-top:.4rem">Se tiveres uma biblioteca, a cor da wishlist segue a dela.</p><button class="btn" style="margin-top:1rem">Guardar</button></form>`;
   const cs = X.wcols.filter(c => c.wishlist_id === W.id), c = cs.find(x => x.id === +wmc);
-  const sugg = D.cols.filter(x => mine_(libOf(x.library_id)) && !X.locked.includes(x.id));
+  const sugg = D.cols.filter(x => mine_(libOf(x.library_id)) && !X.locked.includes(x.id) && !cs.some(y => nt(y.title) === nt(x.title)));
   const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="wmcsel" data-id="new"><span>+ Nova coleção</span></button>
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="wmcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
   const edit = !c ? `<form class="panel scr" data-f="wcoll" style="margin:0"><h2>Nova coleção na wishlist</h2>
-      <label>Importar da minha biblioteca (só coleções que não estão Locked)</label><select name="imp" data-ch="imp"><option value="">— escolher —</option>${sugg.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
+      <label>Importar da minha biblioteca (só coleções que não estão Locked nem já estão na wishlist)</label><select name="imp" data-ch="imp"><option value="">— escolher —</option>${sugg.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>
       <label>Título</label><input name="t" required><label>Idioma</label>${langSel('PT')}${IMGB}
       <label>Volumes desejados (um por linha)</label><textarea name="v" rows="5"></textarea><button type="button" class="btn g sm" data-a="qa" data-m="fill" style="margin-top:.5rem">Quick Add</button><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="wcedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required><label>Idioma</label>${langSel(c.lang)}${IMGB}
@@ -332,7 +333,10 @@ function manageV() {
   const cs = D.cols.filter(c => c.library_id === L.id), c = cs.find(x => x.id === +mc);
   const list = `<div class="panel scr" style="margin:0"><button class="si ${c ? '' : 'on'}" data-a="mcsel" data-id="new"><span>+ Nova coleção</span></button>
     ${cs.map(x => `<button class="si ${c && c.id === x.id ? 'on' : ''}" data-a="mcsel" data-id="${x.id}"><span>${esc(x.title)}</span><b class="ch">${x.lang}</b></button>`).join('')}</div>`;
-  const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2><label>Título</label><input name="t" required>
+  const W = myW(), wsugg = W ? X.wcols.filter(x => x.wishlist_id === W.id && !cs.some(y => nt(y.title) === nt(x.title))) : [];
+  const edit = !c ? `<form class="panel scr" data-f="coll" style="margin:0"><h2>Nova coleção</h2>
+      ${W ? `<label>Importar da minha wishlist (só coleções que ainda não estão nesta biblioteca)</label><select name="impw" data-ch="impw"><option value="">${wsugg.length ? '— escolher —' : 'Sem coleções novas na wishlist'}</option>${wsugg.map(x => `<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select>` : ''}
+      <label>Título</label><input name="t" required>
       <label>Idioma</label>${langSel('PT')}<label class="chk"><input type="checkbox" name="lk">🔒 Locked (coleção completa)</label>${IMGB}
       <label>Volumes (um por linha: 1, 2, 3… ou subtítulos)</label><textarea name="v" rows="5"></textarea><button type="button" class="btn g sm" data-a="qa" data-m="fill" style="margin-top:.5rem">Quick Add</button><button class="btn" style="margin-top:1rem">Criar coleção</button></form>`
     : `<div class="panel scr" style="margin:0"><form data-f="cedit"><h2>Coleção</h2><label>Título</label><input name="t" value="${esc(c.title)}" required>
@@ -425,6 +429,8 @@ document.addEventListener('click', e => {
 document.addEventListener('submit', e => { const f = e.target.closest('[data-f]'); if (f) { e.preventDefault(); F[f.dataset.f](f); } });
 document.addEventListener('input', e => { if (e.target.id === 'q') { q = e.target.value; $('#grid').innerHTML = gridH(); } });
 document.addEventListener('change', e => { if (e.target.id === 'lf') { lf = e.target.value; $('#grid').innerHTML = gridH(); }
+  if (e.target.dataset.ch === 'impw') { const c = X.wcols.find(x => x.id === +e.target.value), f = e.target.form;
+    if (c) { f.t.value = c.title; f.l.value = c.lang; f.iu.value = c.image || ''; toast('Dados importados da wishlist (sem volumes)'); } }
   if (e.target.dataset.ch === 'imp') { const c = D.cols.find(x => x.id === +e.target.value), f = e.target.form;
     if (c) { f.t.value = c.title; f.l.value = c.lang; f.iu.value = c.image || ''; toast('Dados importados (sem volumes)'); } } });
 // arrastar volumes
